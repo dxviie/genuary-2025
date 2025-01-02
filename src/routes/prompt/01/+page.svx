@@ -8,4 +8,4 @@
 
 # Vertical or horizontal lines only
 
-<Prompt01 svgId={"prompt-01-svg"} />
+<Prompt01 svgId={"prompt-svg"} />

@@ -5,37 +5,95 @@
 	const WIDTH = 1080;
 	const ZERO = performance.now();
 
-	const R = 250;
-	let circle: SVGCircleElement | undefined = $state(undefined);
-	let animationFrame = -1;
-	const LINES = generateLines(10, 0, false);
+	type TransformFunction = (time: DOMHighResTimeStamp) => number;
+	type Line = { x1: number; y1: number; x2: number; y2: number; width: number; };
+	type Mask = { id: string; cx: number; cy: number; r: number; };
+	type LineGroup = {
+		index: number;
+		mask: Mask;
+		lines: Line[];
+		fx: TransformFunction;
+		fy: TransformFunction;
+		fr: TransformFunction;
+	};
 
-	function generateLines(spacing = 10, start = 0, horizontal = true) {
+	let styles = $state(['']);
+	const R = 250;
+	let animationFrame = -1;
+	const LINE_GROUPS = generateLineGroups();
+
+	function generateLineGroups() {
+		const minWidth = 0.5;
+		const maxWidth = 5;
+		const minSpacing = 5;
+		const maxSpacing = 50;
+		const horizontal = false;
+		let currentWidth = Math.random() * (maxWidth - minWidth) + minWidth;
+		let currentSpacing = Math.random() * (maxSpacing - minSpacing) + minSpacing;
+		let availableSpace = currentSpacing;
+		let start = 0;
+		const groups: LineGroup[] = [];
+		while (availableSpace > 0) {
+			groups.push({
+				index: groups.length,
+				mask: createMask(`mask-${groups.length}`, WIDTH / 2, HEIGHT / 2, R),
+				lines: generateLines(horizontal, currentSpacing, currentWidth, start),
+				fx: createAnimationFunction(Math.sin, Math.random() * 2500 + 1000, 250),
+				fy: createAnimationFunction(Math.cos, Math.random() * 2500 + 1000, 50),
+				fr: createAnimationFunction(() => 1, 1)
+			});
+			availableSpace -= currentWidth;
+			start += currentWidth;
+
+			currentWidth = Math.random() * (maxWidth - minWidth) + minWidth;
+			currentSpacing = Math.random() * (availableSpace - minSpacing) + minSpacing;
+		}
+		console.debug('Generated line groups:', groups);
+		return groups;
+	}
+
+	function generateLines(horizontal = true, spacing = 10, width = 1, start = 0, stop = Number.MAX_VALUE) {
 		const lines = [];
-		const end = horizontal ? WIDTH : HEIGHT;
-		for (let i = start; i < end; i += spacing) {
+		const end = stop < Number.MAX_VALUE ? stop : horizontal ? WIDTH : HEIGHT;
+		for (let i = start; i < end; i += (spacing + width)) {
 			lines.push({
 				x1: horizontal ? 0 : i,
 				y1: horizontal ? i : 0,
 				x2: horizontal ? WIDTH : i,
-				y2: horizontal ? i : HEIGHT
+				y2: horizontal ? i : HEIGHT,
+				width: width
 			});
 		}
 		return lines;
 	}
 
+	function createMask(id: string, cx: number, cy: number, r: number) {
+		return { id, cx, cy, r };
+	}
+
+	function createAnimationFunction(f = Math.sin, timeRatio = 1000, amplitude = R) {
+		return (t: DOMHighResTimeStamp) => f(t / timeRatio) * amplitude;
+	}
+
+	function createTransform(time: DOMHighResTimeStamp, fx: TransformFunction, fy: TransformFunction, fr: TransformFunction) {
+		const cx = fx(time);
+		const cy = fy(time);
+		const r = fr(time);
+		return `transform: translate(${cx}px, ${cy}px)`;
+	}
+
 	function animate() {
 		const now = performance.now();
 		const elapsed = now - ZERO;
-		cx = Math.sin(elapsed / 1000) * R + WIDTH / 2;
+		for (let i = 0; i < LINE_GROUPS.length; i++) {
+			styles[i] = createTransform(elapsed, LINE_GROUPS[i].fx, LINE_GROUPS[i].fy, LINE_GROUPS[i].fr);
+		}
 		animationFrame = requestAnimationFrame(animate);
 	}
 
 	$effect(() => {
 		console.debug('Prompt01 mounted', svgId);
-		if (circle) {
-			animationFrame = requestAnimationFrame(animate);
-		}
+		animationFrame = requestAnimationFrame(animate);
 		return () => {
 			console.debug('Prompt01 unmounted', svgId);
 			if (animationFrame > 0) {
@@ -44,145 +102,8 @@
 		};
 	});
 
-
-	let cx = $state(0);
-
-	let mediaRecorder: MediaRecorder;
-	let recordedChunks: BlobPart[] = [];
-	let animationFrameId: number;
-
-	function getSupportedMimeType(): string {
-		const types = [
-			'video/webm;codecs=h264',
-			'video/webm;codecs=vp8',
-			'video/webm',
-			'video/mp4'
-		];
-
-		for (const type of types) {
-			if (MediaRecorder.isTypeSupported(type)) {
-				console.log('Using MIME type:', type);
-				return type;
-			}
-		}
-		throw new Error('No supported MIME types found for MediaRecorder');
-	}
-
-	async function startRecording() {
-		const svgElement = document.getElementById(svgId);
-		if (!svgElement) return;
-
-		// Create a canvas element
-		const canvas = document.createElement('canvas');
-		const svgRect = svgElement.getBoundingClientRect();
-		canvas.width = svgRect.width;
-		canvas.height = svgRect.height;
-		const ctx = canvas.getContext('2d');
-
-		if (!ctx) return;
-
-		// Get canvas stream
-		const stream = canvas.captureStream(60); // Back to 60 FPS for smooth animation
-
-		try {
-			mediaRecorder = new MediaRecorder(stream, {
-				mimeType: getSupportedMimeType(),
-				videoBitsPerSecond: 2500000
-			});
-
-			mediaRecorder.ondataavailable = (event) => {
-				if (event.data.size > 0) {
-					recordedChunks.push(event.data);
-				}
-			};
-
-			mediaRecorder.onerror = (event) => {
-				console.error('MediaRecorder error:', event);
-				stopRecording();
-			};
-
-			mediaRecorder.onstop = () => {
-				cancelAnimationFrame(animationFrameId);
-				const blob = new Blob(recordedChunks, {
-					type: mediaRecorder.mimeType
-				});
-
-				const downloadUrl = URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = downloadUrl;
-				a.download = `animation.${mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
-				a.click();
-
-				URL.revokeObjectURL(downloadUrl);
-				recordedChunks = [];
-			};
-
-			// Start recording
-			mediaRecorder.start(1000); // Collect data every second
-
-			// Animation loop to capture SVG changes
-			function drawFrame() {
-				// Convert the current SVG state to a data URL
-				const svgData = new XMLSerializer().serializeToString(svgElement);
-				const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
-				const url = URL.createObjectURL(svgBlob);
-
-				const img = new Image();
-				img.onload = () => {
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-					URL.revokeObjectURL(url);
-				};
-				img.src = url;
-
-				animationFrameId = requestAnimationFrame(drawFrame);
-			}
-
-			drawFrame();
-
-		} catch (error) {
-			console.error('Error setting up MediaRecorder:', error);
-			isRecording = false;
-		}
-	}
-
-	function stopRecording() {
-		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-			mediaRecorder.stop();
-		}
-		if (animationFrameId) {
-			cancelAnimationFrame(animationFrameId);
-		}
-	}
-
-	let isRecording = $state(false);
-
-	function toggleRecording() {
-		if (!isRecording) {
-			startRecording();
-			isRecording = true;
-		} else {
-			stopRecording();
-			isRecording = false;
-		}
-	}
-
-	// Cleanup on component unmount
-	$effect(() => {
-		return () => {
-			if (animationFrameId) {
-				cancelAnimationFrame(animationFrameId);
-			}
-			if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-				mediaRecorder.stop();
-			}
-		};
-	});
 </script>
 
-<button on:click={toggleRecording}>
-	{isRecording ? 'Stop Recording' : 'Start Recording'}
-</button>
 
 <svg
 	id={svgId}
@@ -192,23 +113,21 @@
 	height={`${HEIGHT}`}
 >
 	<defs>
-		<mask id="circle01">
-			<circle bind:this={circle} r={R} cx={cx} cy={HEIGHT / 2} stroke="black" stroke-width="0" fill="#FFF" />
-		</mask>
-	</defs>
-	<rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="#FFF" />
-	<g id="lines">
-		<line x1="0" y1="0" x2="1080" y2="1080" stroke="black" stroke-width="0" />
-		<line x1="0" y1="1080" x2="1080" y2="0" stroke="black" stroke-width="0" />
-	</g>
-
-	<g id="line-group-01" mask="url(#circle01)">
-		{#each LINES as line}
-			<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="black" stroke-width="1" />
+		{#each LINE_GROUPS as group}
+			<mask id={group.mask.id}>
+				<circle r={group.mask.r} cx={group.mask.cx} cy={group.mask.cy} stroke="black" stroke-width="0" fill="#FFF"
+								style={styles[group.index]} />
+			</mask>
 		{/each}
-	</g>
+	</defs>
+
+	<rect id="background-rect" x="0" y="0" width={WIDTH} height={HEIGHT} fill="#FFF" />
+
+	{#each LINE_GROUPS as group}
+		<g mask="url(#{group.mask.id})">
+			{#each group.lines as line}
+				<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="black" stroke-width={line.width} />
+			{/each}
+		</g>
+	{/each}
 </svg>
-
-<style>
-
-</style>
