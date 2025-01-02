@@ -1,5 +1,11 @@
 ---
-layout: entry
+	layout: entry
 ---
 
-# Page 1
+<script>
+	import Prompt01 from '$lib/Prompt01.svelte';
+</script>
+
+# Vertical or horizontal lines only
+
+<Prompt01 svgId={"prompt-01-svg"} />

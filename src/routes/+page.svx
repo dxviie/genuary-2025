@@ -1,2 +1,3 @@
-# Welcome to SvelteKit
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+**01 Vertical or horizontal lines only** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
+
+[View Sketch](/prompt/01)
