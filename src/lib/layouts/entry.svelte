@@ -202,6 +202,7 @@
 <style>
     :global(body) {
         font-family: "Courier New", serif;
+        line-height: 1.4rem;
     }
 
     :global(a) {

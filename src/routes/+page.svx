@@ -1,3 +1,17 @@
 **01 Vertical or horizontal lines only** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
 
 [View Sketch](/prompt/01)
+
+------
+
+#### Prompts I plan to do:
+
+- 05: Isometric Art (No vanishing points).
+
+- 10: You can only use TAU in your code, no other number allowed.(TAU = 2 * pi = 6.2831853…)
+
+- 16: Generative palette.
+
+- 21: Create a collision detection system (no libraries allowed).
+
+- 29: Grid-based graphic design.
