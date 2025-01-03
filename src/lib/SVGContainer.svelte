@@ -11,7 +11,12 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 95vmin;
-        object-fit: contain;
+        width: 80vmin;
+    }
+
+    @media (max-width: 600px) {
+        .svg-container {
+            width: 95vmin;
+        }
     }
 </style>
