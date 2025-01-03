@@ -1,4 +1,6 @@
 <script lang="ts">
+	import SVGContainer from '$lib/SVGContainer.svelte';
+
 	const { svgId } = $props();
 
 	const HEIGHT = 1080;
@@ -85,12 +87,17 @@
 		return `transform: translate(${cx}px, ${cy}px)`;
 	}
 
+	const FPS = 30;
+	const frameMillis = 1000 / FPS;
+	let frame = 0;
+
 	function animate() {
 		const now = performance.now();
-		const elapsed = now - ZERO;
+		const elapsed = frame * frameMillis;//now - ZERO;
 		for (let i = 0; i < LINE_GROUPS.length; i++) {
 			styles[i] = createTransform(elapsed, LINE_GROUPS[i].fx, LINE_GROUPS[i].fy);
 		}
+		frame++;
 		animationFrame = requestAnimationFrame(animate);
 	}
 
@@ -108,29 +115,31 @@
 </script>
 
 
-<svg
-	id={svgId}
-	viewBox="0 0 {WIDTH} {HEIGHT}"
-	xmlns="http://www.w3.org/2000/svg"
-	width={`${WIDTH}`}
-	height={`${HEIGHT}`}
->
-	<defs>
-		{#each LINE_GROUPS as group}
-			<mask id={group.mask.id}>
-				<rect height={group.mask.r * 2} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r}
-							fill="#FFF" style={styles[group.index]} />
-			</mask>
-		{/each}
-	</defs>
-
-	<rect id="background-rect" x="0" y="0" width={WIDTH} height={HEIGHT} fill="#FFF" />
-
-	{#each LINE_GROUPS as group}
-		<g mask="url(#{group.mask.id})">
-			{#each group.lines as line}
-				<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="black" stroke-width={line.width} />
+<SVGContainer>
+	<svg
+		id={svgId}
+		viewBox="0 0 {WIDTH} {HEIGHT}"
+		xmlns="http://www.w3.org/2000/svg"
+		width={`${WIDTH}`}
+		height={`${HEIGHT}`}
+	>
+		<defs>
+			{#each LINE_GROUPS as group}
+				<mask id={group.mask.id}>
+					<rect height={group.mask.r * 2} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r}
+								fill="#FFF" style={styles[group.index]} />
+				</mask>
 			{/each}
-		</g>
-	{/each}
-</svg>
+		</defs>
+
+		<rect id="background-rect" x="0" y="0" width={WIDTH} height={HEIGHT} fill="#FFF" />
+
+		{#each LINE_GROUPS as group}
+			<g mask="url(#{group.mask.id})">
+				{#each group.lines as line}
+					<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="black" stroke-width={line.width} />
+				{/each}
+			</g>
+		{/each}
+	</svg>
+</SVGContainer>
