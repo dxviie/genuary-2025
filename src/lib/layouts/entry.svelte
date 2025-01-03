@@ -188,7 +188,7 @@
 	<a href="/">Back to overview</a>
 	{@render children()}
 	<div class="buttons">
-		<button onclick={() => window.location.reload()}>Roll the dice</button>
+		<button onclick={() => window.location.reload()}>Roll the Dice</button>
 		<button onclick={toggleRecording}>
 			{isRecording ? 'Stop Recording' : 'Start Recording'}
 		</button>
