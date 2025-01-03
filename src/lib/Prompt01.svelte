@@ -9,7 +9,7 @@
 
 	type TransformFunction = (time: DOMHighResTimeStamp) => number;
 	type Line = { x1: number; y1: number; x2: number; y2: number; width: number; };
-	type Mask = { id: string; cx: number; cy: number; r: number; type: 'circle' | 'rect' };
+	type Mask = { id: string; cx: number; cy: number; r: number; type: 'circle' | 'rect' | string };
 	type LineGroup = {
 		index: number;
 		mask: Mask;
@@ -118,7 +118,6 @@
 	});
 
 </script>
-
 
 <SVGContainer>
 	<svg

@@ -12,6 +12,8 @@
         flex-direction: column;
         align-items: center;
         width: 80vmin;
+        border-style: dashed;
+        border-width: 1px;
     }
 
     @media (max-width: 600px) {
