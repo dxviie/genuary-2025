@@ -9,7 +9,7 @@
 
 	type TransformFunction = (time: DOMHighResTimeStamp) => number;
 	type Line = { x1: number; y1: number; x2: number; y2: number; width: number; };
-	type Mask = { id: string; cx: number; cy: number; r: number; };
+	type Mask = { id: string; cx: number; cy: number; r: number; type: 'circle' | 'rect' };
 	type LineGroup = {
 		index: number;
 		mask: Mask;
@@ -33,20 +33,25 @@
 		let currentWidth = Math.random() * (maxWidth - minWidth) + minWidth;
 		let currentSpacing = Math.random() * (maxSpacing - minSpacing) + minSpacing;
 		let availableSpace = currentSpacing;
+		let timeRatio = Math.random() * 2000;
+		let phase = 0;
+		let phaseDelta = Math.random() * 2 * Math.PI;
 		let start = 0;
 		const groups: LineGroup[] = [];
 		while (availableSpace > 0) {
 			const maskCx = WIDTH / 2 + (Math.random() * 2 - 1) * (R / 2);
-			const maskCy = HEIGHT / 2 + (Math.random() * 2 - 1) * (R / 2);
+			const maskCy = HEIGHT / 2 + (Math.random() * 2 - 1) * (R);
+			const r = Math.random() * R / 2 + R / 2;
 			groups.push({
 				index: groups.length,
-				mask: createMask(`mask-${groups.length}`, maskCx, maskCy, R),
+				mask: createMask(`mask-${groups.length}`, maskCx, maskCy, r),
 				lines: generateLines(horizontal, currentSpacing, currentWidth, start),
-				fx: createAnimationFunction(Math.sin, Math.random() * 2500 + 1000, 250),
-				fy: createAnimationFunction(Math.cos, Math.random() * 2500 + 1000, 50)
+				fx: createAnimationFunction(Math.sin, timeRatio * phase, 250, phase),
+				fy: createAnimationFunction(Math.cos, timeRatio, 5, phase)
 			});
 			availableSpace -= currentWidth;
 			start += currentWidth;
+			phase += phaseDelta;
 			if (allowCrossing) {
 				horizontal = Math.random() > 0.5;
 			}
@@ -74,11 +79,11 @@
 	}
 
 	function createMask(id: string, cx: number, cy: number, r: number) {
-		return { id, cx, cy, r };
+		return { id, cx, cy, r, type: Math.random() > 0.8 ? 'circle' : 'rect' };
 	}
 
-	function createAnimationFunction(f = Math.sin, timeRatio = 1000, amplitude = R) {
-		return (t: DOMHighResTimeStamp) => f(t / timeRatio) * amplitude;
+	function createAnimationFunction(f = Math.sin, timeRatio = 1000, amplitude = R, phase = 0) {
+		return (t: DOMHighResTimeStamp) => (f(t / timeRatio) * amplitude) + phase;
 	}
 
 	function createTransform(time: DOMHighResTimeStamp, fx: TransformFunction, fy: TransformFunction) {
@@ -126,8 +131,12 @@
 		<defs>
 			{#each LINE_GROUPS as group}
 				<mask id={group.mask.id}>
-					<rect height={group.mask.r * 2} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r}
-								fill="#FFF" style={styles[group.index]} />
+					{#if group.mask.type === 'rect'}
+						<rect height={group.mask.r * 2} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r}
+									fill="#FFF" style={styles[group.index]} />
+					{:else}
+						<circle cx={group.mask.cx} cy={group.mask.cy} r={group.mask.r} fill="#FFF" style={styles[group.index]} />
+					{/if}
 				</mask>
 			{/each}
 		</defs>

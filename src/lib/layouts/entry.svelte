@@ -241,6 +241,9 @@
         color: #000;
         border-radius: 1rem;
         cursor: pointer;
+        border-style: dashed;
+        border-color: #000;
+        border-width: 1px;
     }
 
     :global(button:active) {
