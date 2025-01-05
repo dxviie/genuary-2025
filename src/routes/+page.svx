@@ -1,4 +1,16 @@
+<script lang="ts">
+	import ImageDisplay from '$lib/ImageDisplay.svelte';
+
+	const images01 = [
+	{file: '/01/01a.png', alt: 'Prompt 01: only vertical lines'},
+	{file: '/01/01b.png', alt: 'Prompt 01: only horizontal lines'},
+	{file: '/01/01c.png', alt: 'Prompt 01: both vertical & horizontal lines'},
+	];
+</script>
+
 **01 Vertical or horizontal lines only** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
+
+<ImageDisplay images={images01} />
 
 [View Sketch](/prompt/01)
 
