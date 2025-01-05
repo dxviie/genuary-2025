@@ -15,6 +15,7 @@
 	const HEIGHT = 1080;
 	const WIDTH = 1080;
 	const MARGIN = 50;
+	const STROKE_WIDTH = 2;
 
 	const MAX_HORIZONTAL_TILE_COUNT = 20;
 	const TILE_RATIO = 0.5;
@@ -182,9 +183,9 @@
 		height={`${HEIGHT}`}
 	>
 		{#each tiles as tile, index}
-			<path d={tile.leftPath} stroke={colors.leftColor} stroke-width="0" fill={colors.leftColor} />
-			<path d={tile.rightPath} stroke={colors.rightColor} stroke-width="0" fill={colors.rightColor} />
-			<path d={tile.headPath} stroke={colors.headColor} stroke-width="0" fill={colors.headColor} />
+			<path d={tile.leftPath} stroke={colors.leftColor} stroke-width={STROKE_WIDTH} fill={colors.leftColor} />
+			<path d={tile.rightPath} stroke={colors.rightColor} stroke-width={STROKE_WIDTH} fill={colors.rightColor} />
+			<path d={tile.headPath} stroke={colors.headColor} stroke-width={STROKE_WIDTH} fill={colors.headColor} />
 		{/each}
 	</svg>
 </SVGContainer>
