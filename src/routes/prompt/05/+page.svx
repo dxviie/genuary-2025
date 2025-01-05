@@ -1,0 +1,19 @@
+---
+	layout: entry
+---
+
+<script>
+	import Prompt05 from '$lib/Prompt05.svelte';
+	import SVGControls from '$lib/SVGControls.svelte';
+	const svgId = "prompt-02-svg";
+</script>
+
+# Isometric Art (No vanishing points)
+
+### WIP!!!
+
+<Prompt05 {svgId} />
+
+###
+
+<SVGControls {svgId} />

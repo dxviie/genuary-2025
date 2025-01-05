@@ -16,6 +16,12 @@
 
 ------
 
+**05 Isometric Art (No vanishing points)** <small>- (credit: [P1xelboy](https://linktr.ee/p1x3lboy))</small>
+
+[View Sketch **(WIP!!!)**](/prompt/05)
+
+------
+
 #### Prompts I plan to do:
 
 - 05: Isometric Art (No vanishing points).
