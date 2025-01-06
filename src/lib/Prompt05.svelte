@@ -17,10 +17,11 @@
 	const MARGIN = 50;
 	const STROKE_WIDTH = 2;
 
-	const MAX_HORIZONTAL_TILE_COUNT = 20;
-	const TILE_RATIO = 0.5;
+	const MAX_HORIZONTAL_TILE_COUNT = Math.floor(Math.random() * 8 + 5);
+	const TILE_RATIO = .5;
 	const TILE_WIDTH = (WIDTH - (2 * MARGIN)) / MAX_HORIZONTAL_TILE_COUNT;
 	const TILE_HEIGHT = TILE_WIDTH * TILE_RATIO;
+	const BASE_BUILDING_HEIGHT = 20;
 	const MAX_BUILDING_HEIGHT = 500;
 
 	let tiles: Tile[] = $state([]);
@@ -34,12 +35,20 @@
 		return `M ${tileX} ${tileY - height} l ${tileWidth / 2} -${tileHeight / 2} l ${tileWidth / 2} ${tileHeight / 2} l -${tileWidth / 2} ${tileHeight / 2} Z`;
 	}
 
+	function buildLeftPath(tileX: number, tileY: number, height: number, tileWidth: number, tileHeight: number): string {
+		return `M ${tileX} ${tileY} l 0 -${height} l ${tileWidth / 2} ${tileHeight / 2} l 0 ${height} Z`;
+	}
+
+	function buildRightPath(tileX: number, tileY: number, height: number, tileWidth: number, tileHeight: number): string {
+		return `M ${tileX + tileWidth / 2} ${tileY + tileHeight / 2} l ${tileWidth / 2} -${tileHeight / 2} l 0 -${height} l -${tileWidth / 2} ${tileHeight / 2} Z`;
+	}
+
 	$effect(() => {
 		const rows = (MAX_HORIZONTAL_TILE_COUNT * 2) - 1;
 		let rowX = WIDTH / 2 - TILE_WIDTH / 2;
 		// (total height - grid height) / 2
 		// + half tile height to adjust for the x,y point of the tiles being the leftmost point
-		let rowY = (HEIGHT - ((rows + 1) * (TILE_HEIGHT / 2))) / 2 + TILE_HEIGHT / 2 + MAX_BUILDING_HEIGHT / 2;
+		let rowY = (HEIGHT - ((rows + 1) * (TILE_HEIGHT / 2))) / 2 + TILE_HEIGHT / 2 + (MAX_BUILDING_HEIGHT + BASE_BUILDING_HEIGHT) / 2;
 		console.debug('rows', rows, 'rowX', rowX, 'rowY', rowY);
 		let row = 0;
 		let cols = 1;
@@ -49,14 +58,14 @@
 			let x = rowX;
 			let y = rowY;
 			for (let c = 0; c < cols; c++) {
-				const height = Math.floor(Math.random() * MAX_BUILDING_HEIGHT);
+				const height = Math.floor(Math.random() * MAX_BUILDING_HEIGHT) + BASE_BUILDING_HEIGHT;
 				newTiles.push({
 					height: height,
 					x: x,
 					y: y,
 					headPath: buildHeadPath(x, y, height, TILE_WIDTH, TILE_HEIGHT),
-					leftPath: `M ${x} ${y} l 0 -${height} l ${TILE_WIDTH / 2} ${TILE_HEIGHT / 2} l 0 ${height} Z`,
-					rightPath: `M ${x + TILE_WIDTH / 2} ${y + TILE_HEIGHT / 2} l ${TILE_WIDTH / 2} -${TILE_HEIGHT / 2} l 0 -${height} l -${TILE_WIDTH / 2} ${TILE_HEIGHT / 2} Z`
+					leftPath: buildLeftPath(x, y, height, TILE_WIDTH, TILE_HEIGHT),
+					rightPath: buildRightPath(x, y, height, TILE_WIDTH, TILE_HEIGHT)
 				});
 				x += TILE_WIDTH;
 			}
@@ -76,15 +85,38 @@
 		}
 		tiles = newTiles;
 	});
-	$inspect(tiles);
-	let animationId: number;
-	let startTime: number;
-	const ANIMATION_DURATION = 60000;
+
+	$effect(() => {
+		colorStartTime = 0;
+		colorAnimationId = requestAnimationFrame(Math.random() > 0.5 ? animateHue : animateGray);
+
+		if (animationId) {
+			cancelAnimationFrame(animationId);
+		}
+		startTime = 0;
+		animationId = requestAnimationFrame(animateWave);
+
+		return () => {
+			if (colorAnimationId) cancelAnimationFrame(colorAnimationId);
+			if (animationId) {
+				cancelAnimationFrame(animationId);
+			}
+		};
+	});
+
+	/**********************************************
+	 * COLOR ANIMATION STUFF
+	 * Courtesy of Claude
+	 * ********************************************/
+
+	let colorAnimationId: number;
+	let colorStartTime: number;
+	const COLOR_ANIMATION_DURATION = 60000;
 
 	function animateHue(timestamp: number) {
-		if (!startTime) startTime = timestamp;
-		const elapsed = timestamp - startTime;
-		const progress = (elapsed % ANIMATION_DURATION) / ANIMATION_DURATION;
+		if (!colorStartTime) colorStartTime = timestamp;
+		const elapsed = timestamp - colorStartTime;
+		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
 		const angle = progress * Math.PI * 2;
 
 		// Calculate HSL values for each side
@@ -98,7 +130,7 @@
 			rightColor: hslToHex(right * 360, 70, 60)
 		};
 
-		animationId = requestAnimationFrame(animateHue);
+		colorAnimationId = requestAnimationFrame(animateHue);
 	}
 
 	function hslToHex(h: number, s: number, l: number): string {
@@ -135,9 +167,9 @@
 	}
 
 	function animateGray(timestamp: number) {
-		if (!startTime) startTime = timestamp;
-		const elapsed = timestamp - startTime;
-		const progress = (elapsed % ANIMATION_DURATION) / ANIMATION_DURATION;
+		if (!colorStartTime) colorStartTime = timestamp;
+		const elapsed = timestamp - colorStartTime;
+		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
 
 		// Calculate the position of the "light" (0 to 1)
 		const angle = progress * Math.PI * 2;
@@ -155,7 +187,7 @@
 			rightColor: brightnessToHex(rightBrightness)
 		};
 
-		animationId = requestAnimationFrame(animateGray);
+		colorAnimationId = requestAnimationFrame(animateGray);
 	}
 
 	function brightnessToHex(brightness: number): string {
@@ -165,13 +197,42 @@
 		return `#${hex}${hex}${hex}`;
 	}
 
-	$effect(() => {
-		startTime = 0;
-		animationId = requestAnimationFrame(Math.random() > 0.5 ? animateHue : animateGray);
-		return () => {
-			if (animationId) cancelAnimationFrame(animationId);
-		};
-	});
+	/*****************************************************
+	 * 	HEIGHT ANIMATION STUFF
+	 * 	Courtesy of Claude
+	 *  *************************************************/
+
+	let animationId: number;
+	let startTime: number;
+	const HEIGHT_ANIMATION_DURATION = 30000;
+
+	function animateWave(timestamp: number) {
+		if (!startTime) startTime = timestamp;
+		const elapsed = timestamp - startTime;
+		const progress = (elapsed % HEIGHT_ANIMATION_DURATION) / HEIGHT_ANIMATION_DURATION;
+
+		tiles = tiles.map(tile => {
+			// Create a wave pattern based on tile position
+			const waveX = (tile.x + tile.y) * 0.5; // Diagonal wave
+			const frequency = 0.3;
+			const wave = Math.sin(2 * Math.PI * (waveX * frequency + progress));
+			const newHeight = BASE_BUILDING_HEIGHT + (wave + 1) * (MAX_BUILDING_HEIGHT - BASE_BUILDING_HEIGHT) / 2;
+			const headPath = buildHeadPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
+			const leftPath = buildLeftPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
+			const rightPath = buildRightPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
+
+			return {
+				...tile,
+				height: newHeight,
+				headPath: headPath,
+				leftPath: leftPath,
+				rightPath: rightPath
+			};
+		});
+
+		animationId = requestAnimationFrame(animateWave);
+	}
+
 </script>
 
 <SVGContainer>
