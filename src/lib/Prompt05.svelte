@@ -6,23 +6,26 @@
 	type Tile = {
 		x: number;
 		y: number;
+		index: number;
 		headPath: string;
 		leftPath: string;
 		rightPath: string;
+		buildingHeight: number;
 		height: number;
 	};
 
 	const HEIGHT = 1080;
 	const WIDTH = 1080;
-	const MARGIN = 50;
+	const MARGIN = (Math.random() * 1000) - 700;
 	const STROKE_WIDTH = 2;
 
-	const MAX_HORIZONTAL_TILE_COUNT = Math.floor(Math.random() * 8 + 5);
-	const TILE_RATIO = .5;
+	const MAX_HORIZONTAL_TILE_COUNT = Math.floor(Math.random() * 28 + 2);
+	const TILE_RATIO = Math.random() * 1.5 + .3;
 	const TILE_WIDTH = (WIDTH - (2 * MARGIN)) / MAX_HORIZONTAL_TILE_COUNT;
 	const TILE_HEIGHT = TILE_WIDTH * TILE_RATIO;
 	const BASE_BUILDING_HEIGHT = 20;
-	const MAX_BUILDING_HEIGHT = 500;
+	const MAX_BUILDING_HEIGHT = 20 + Math.random() * 250;
+	const MAX_WAVE_HEIGHT = 50 + Math.random() * 50;
 
 	let tiles: Tile[] = $state([]);
 	let colors = $state({
@@ -58,11 +61,13 @@
 			let x = rowX;
 			let y = rowY;
 			for (let c = 0; c < cols; c++) {
-				const height = Math.floor(Math.random() * MAX_BUILDING_HEIGHT) + BASE_BUILDING_HEIGHT;
+				const height = MAX_BUILDING_HEIGHT;
 				newTiles.push({
+					buildingHeight: height,
 					height: height,
 					x: x,
 					y: y,
+					index: newTiles.length,
 					headPath: buildHeadPath(x, y, height, TILE_WIDTH, TILE_HEIGHT),
 					leftPath: buildLeftPath(x, y, height, TILE_WIDTH, TILE_HEIGHT),
 					rightPath: buildRightPath(x, y, height, TILE_WIDTH, TILE_HEIGHT)
@@ -111,7 +116,11 @@
 
 	let colorAnimationId: number;
 	let colorStartTime: number;
-	const COLOR_ANIMATION_DURATION = 60000;
+	const COLOR_ANIMATION_DURATION = 25000 + Math.random() * 15000;
+	const LEFT_SAT = Math.random() * 60 + 30;
+	const HUE_HEAD = Math.random() * 360;
+	const HUE_LEFT = Math.random() * 360;
+	const HUE_RIGHT = Math.random() * 360;
 
 	function animateHue(timestamp: number) {
 		if (!colorStartTime) colorStartTime = timestamp;
@@ -125,9 +134,9 @@
 		const right = (Math.sin(angle + (Math.PI * 4 / 3)) + 1) / 2;
 
 		colors = {
-			headColor: hslToHex(head * 360, 70, 60),
-			leftColor: hslToHex(left * 360, 70, 60),
-			rightColor: hslToHex(right * 360, 70, 60)
+			headColor: hslToHex(HUE_HEAD, 70, 60),
+			leftColor: hslToHex(HUE_LEFT, LEFT_SAT, 60),
+			rightColor: hslToHex(HUE_RIGHT, 100 - LEFT_SAT, 60)
 		};
 
 		colorAnimationId = requestAnimationFrame(animateHue);
@@ -205,18 +214,19 @@
 	let animationId: number;
 	let startTime: number;
 	const HEIGHT_ANIMATION_DURATION = 30000;
+	const FREQUENCY = Math.random();
 
 	function animateWave(timestamp: number) {
 		if (!startTime) startTime = timestamp;
 		const elapsed = timestamp - startTime;
 		const progress = (elapsed % HEIGHT_ANIMATION_DURATION) / HEIGHT_ANIMATION_DURATION;
 
-		tiles = tiles.map(tile => {
+		tiles = tiles.map((tile, index) => {
 			// Create a wave pattern based on tile position
-			const waveX = (tile.x + tile.y) * 0.5; // Diagonal wave
-			const frequency = 0.3;
-			const wave = Math.sin(2 * Math.PI * (waveX * frequency + progress));
-			const newHeight = BASE_BUILDING_HEIGHT + (wave + 1) * (MAX_BUILDING_HEIGHT - BASE_BUILDING_HEIGHT) / 2;
+
+			const waveX = (tile.index) * 0.5; // Diagonal wave
+			const wave = Math.sin(2 * Math.PI * (waveX * FREQUENCY + progress));
+			const newHeight = tile.buildingHeight + (wave + 1) * MAX_WAVE_HEIGHT / 2;
 			const headPath = buildHeadPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
 			const leftPath = buildLeftPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
 			const rightPath = buildRightPath(tile.x, tile.y, newHeight, TILE_WIDTH, TILE_HEIGHT);
@@ -243,10 +253,17 @@
 		width={`${WIDTH}`}
 		height={`${HEIGHT}`}
 	>
+		<rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="#000"></rect>
 		{#each tiles as tile, index}
-			<path d={tile.leftPath} stroke={colors.leftColor} stroke-width={STROKE_WIDTH} fill={colors.leftColor} />
-			<path d={tile.rightPath} stroke={colors.rightColor} stroke-width={STROKE_WIDTH} fill={colors.rightColor} />
-			<path d={tile.headPath} stroke={colors.headColor} stroke-width={STROKE_WIDTH} fill={colors.headColor} />
+			{#if tile.x < WIDTH / 2}
+				<path d={tile.rightPath} stroke={colors.rightColor} stroke-width={STROKE_WIDTH} fill={colors.rightColor} />
+				<path d={tile.leftPath} stroke={colors.leftColor} stroke-width={STROKE_WIDTH} fill={colors.leftColor} />
+				<path d={tile.headPath} stroke={colors.headColor} stroke-width={STROKE_WIDTH} fill={colors.headColor} />
+			{:else}
+				<path d={tile.leftPath} stroke={colors.leftColor} stroke-width={STROKE_WIDTH} fill={colors.leftColor} />
+				<path d={tile.rightPath} stroke={colors.rightColor} stroke-width={STROKE_WIDTH} fill={colors.rightColor} />
+				<path d={tile.headPath} stroke={colors.headColor} stroke-width={STROKE_WIDTH} fill={colors.headColor} />
+			{/if}
 		{/each}
 	</svg>
 </SVGContainer>

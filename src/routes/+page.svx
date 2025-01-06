@@ -1,3 +1,4 @@
+import ImageDisplay from '$lib/ImageDisplay.svelte';
 <script lang="ts">
 	import ImageDisplay from '$lib/ImageDisplay.svelte';
 
@@ -5,6 +6,11 @@
 	{file: '/01/01a.png', alt: 'Prompt 01: only vertical lines'},
 	{file: '/01/01b.png', alt: 'Prompt 01: only horizontal lines'},
 	{file: '/01/01c.png', alt: 'Prompt 01: both vertical & horizontal lines'},
+	];
+	const images05 = [
+	{file: '/05/05c.png', alt: 'Prompt 05: black & white isometric art'},
+	{file: '/05/05b.png', alt: 'Prompt 05: tiny pinkish isometric art'},
+	{file: '/05/05a.png', alt: 'Prompt 05: zoomed in orange isometric art'},
 	];
 </script>
 
@@ -18,7 +24,9 @@
 
 **05 Isometric Art (No vanishing points)** <small>- (credit: [P1xelboy](https://linktr.ee/p1x3lboy))</small>
 
-[View Sketch **(WIP!!!)**](/prompt/05)
+<ImageDisplay images={images05} />
+
+[View Sketch](/prompt/05)
 
 ------
 

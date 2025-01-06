@@ -10,8 +10,6 @@
 
 # Isometric Art (No vanishing points)
 
-### WIP!!!
-
 <Prompt05 {svgId} />
 
 ###
