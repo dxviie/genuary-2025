@@ -69,7 +69,7 @@
 		}
 		if (!startTime) startTime = timestamp;
 		const elapsed = (timestamp - startTime) / 1000;
-		const osc = (Math.sin(elapsed)) * (tiles.length - 2);
+		const osc = (Math.sin(elapsed)) * (tiles.length * 1.2);
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = tiles[i];
 			tile.color = mixbox.lerp(rgb1, rgb2, (tile.index + osc) / tiles.length);
