@@ -6,7 +6,7 @@
 
 	const WIDTH = 1080;
 	const HEIGHT = 1080;
-	// colors from mixbox documentation
+	// pigment colors from mixbox documentation
 	const colors = [
 		'rgb(254, 236, 0)',   // Cadmium Yellow
 		'rgb(252, 211, 0)',   // Hansa Yellow
@@ -24,7 +24,7 @@
 	];
 
 	const rgb1 = colors[Math.floor(Math.random() * colors.length)];
-	const rgb2 = colors[Math.floor(Math.random() * colors.length)];
+	let rgb2 = colors[Math.floor(Math.random() * colors.length)];
 
 	const { svgId } = $props();
 	let tiles = $state(buildTiles(8));
@@ -64,6 +64,9 @@
 	});
 
 	function animate(timestamp: number) {
+		if (rgb1 === rgb2) {
+			rgb2 = colors[Math.floor(Math.random() * colors.length)];
+		}
 		if (!startTime) startTime = timestamp;
 		const elapsed = (timestamp - startTime) / 1000;
 		const osc = (Math.sin(elapsed)) * (tiles.length - 2);
