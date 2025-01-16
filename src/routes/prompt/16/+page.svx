@@ -1,0 +1,17 @@
+---
+	layout: entry
+---
+
+<script>
+	import Prompt16 from '$lib/Prompt16.svelte';
+	import SVGControls from '$lib/SVGControls.svelte';
+	const svgId = "prompt-02-svg";
+</script>
+
+# Generative palette !WIP!
+
+<Prompt16 {svgId} />
+
+###
+
+<SVGControls {svgId} />
