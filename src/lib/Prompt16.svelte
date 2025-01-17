@@ -69,10 +69,6 @@
 			}
 		}
 	];
-
-	let DEBUG = $state(false);
-	const selectedPatternIndex = Math.floor(Math.random() * patterns.length);
-	const selectedPattern = patterns[selectedPatternIndex];
 	const WIDTH = 1080;
 	const HEIGHT = 1080;
 	// pigment colors from mixbox documentation
@@ -107,6 +103,10 @@
 		y: number;
 	}
 
+	let DEBUG = $state(false);
+	const selectedPatternIndex = Math.floor(Math.random() * patterns.length);
+	const selectedPattern = patterns[selectedPatternIndex];
+	const timefactor = Math.random() * 3000 + 1000;
 	const colors = $state(generateColorSources(Math.floor(Math.random() * 2) + 2));
 	let tiles = $state(buildTiles(Math.floor(Math.random() * 12) + 3));
 	// Generate random offsets for each color at startup
@@ -169,8 +169,6 @@
 		};
 	});
 
-	const timefactor = Math.random() * 3000 + 1000;
-
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
 		const elapsed = (timestamp - startTime) / timefactor;
@@ -221,9 +219,61 @@
 		xmlns="http://www.w3.org/2000/svg"
 		width={`${WIDTH}`}
 		height={`${HEIGHT}`}
+		filter="url(#noise)"
 	>
+		<defs>
+			<filter id="noise" x="0%" y="0%" width="100%" height="100%">
+				<!-- Create finer grain base noise -->
+				<feTurbulence
+					type="fractalNoise"
+					baseFrequency="1.5"
+					numOctaves="4"
+					seed="1"
+					stitchTiles="stitch"
+					result="noiseBase"
+				/>
+
+				<!-- Second noise layer for texture variation -->
+				<feTurbulence
+					type="fractalNoise"
+					baseFrequency="0.8"
+					numOctaves="2"
+					seed="2"
+					result="noise2"
+				/>
+
+				<!-- Combine noise layers -->
+				<feComposite
+					operator="arithmetic"
+					in="noiseBase"
+					in2="noise2"
+					k1="0.5"
+					k2="0.5"
+					result="combinedNoise"
+				/>
+
+				<!-- Soften overall -->
+				<feGaussianBlur stdDeviation="0.7" result="softNoise" />
+
+				<!-- Adjust contrast and brightness -->
+				<feComponentTransfer>
+					<feFuncR type="linear" slope="0.7" intercept="0.1" />
+					<feFuncG type="linear" slope="0.7" intercept="0.1" />
+					<feFuncB type="linear" slope="0.7" intercept="0.1" />
+				</feComponentTransfer>
+
+				<!-- Blend with original -->
+				<feBlend
+					in="SourceGraphic"
+					in2="softNoise"
+					mode="overlay"
+					result="final"
+				/>
+			</filter>
+		</defs>
 		{#each tiles as tile, i}
-			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2" />
+			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2"
+			/>
 			{#if DEBUG}
 				<text x={tile.x + tile.size / 2} y={tile.y + tile.size / 2} fill="#FFF" font-size="20" text-anchor="middle"
 							alignment-baseline="middle">{i}</text>
