@@ -221,7 +221,7 @@
 		height={`${HEIGHT}`}
 	>
 		{#each tiles as tile, i}
-			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} />
+			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2" />
 			{#if DEBUG}
 				<text x={tile.x + tile.size / 2} y={tile.y + tile.size / 2} fill="#FFF" font-size="20" text-anchor="middle"
 							alignment-baseline="middle">{i}</text>
@@ -241,6 +241,7 @@
 
 
 </SVGContainer>
+<hr />
 <div>
 	<input type="checkbox" bind:checked={DEBUG} aria-label="DEBUG flag on/off" /> debug
 </div>
