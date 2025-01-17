@@ -82,14 +82,14 @@
 		'rgb(255, 105, 0)',   // Cadmium Orange
 		'rgb(255, 39, 2)',    // Cadmium Red
 		'rgb(128, 2, 46)',    // Quinacridone Magenta
-		'rgb(78, 0, 66)',     // Cobalt Violet
+		// 'rgb(78, 0, 66)',     // Cobalt Violet
 		'rgb(25, 0, 89)',     // Ultramarine Blue
 		'rgb(0, 33, 133)',    // Cobalt Blue
-		'rgb(13, 27, 68)',    // Phthalo Blue
-		'rgb(0, 60, 50)',     // Phthalo Green
+		// 'rgb(13, 27, 68)',    // Phthalo Blue
+		// 'rgb(0, 60, 50)',     // Phthalo Green
 		'rgb(7, 109, 22)',    // Permanent Green
-		'rgb(107, 148, 4)',   // Sap Green
-		'rgb(123, 72, 0)'     // Burnt Sienna
+		'rgb(107, 148, 4)'   // Sap Green
+		// 'rgb(123, 72, 0)'     // Burnt Sienna
 	];
 
 	type Tile = {
@@ -169,10 +169,12 @@
 		};
 	});
 
+	const timefactor = Math.random() * 3000 + 1000;
+
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
-		const elapsed = (timestamp - startTime) / 3000;
-		const osc = remap(Math.sin(elapsed), -1, 1, 0.85, 1.15);
+		const elapsed = (timestamp - startTime) / timefactor;
+		const osc = remap(Math.sin(elapsed), -1, 1, 0.75, 1.1);
 		const newTiles = [];
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = { ...tiles[i] };
