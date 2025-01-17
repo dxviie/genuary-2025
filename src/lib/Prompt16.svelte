@@ -107,14 +107,28 @@
 	const selectedPatternIndex = Math.floor(Math.random() * patterns.length);
 	const selectedPattern = patterns[selectedPatternIndex];
 	const timefactor = Math.random() * 3000 + 1000;
-	const colors = $state(generateColorSources(Math.floor(Math.random() * 2) + 2));
-	let tiles = $state(buildTiles(Math.floor(Math.random() * 12) + 3));
+	let colors: ColorSource[] = $state([]);
+	let tiles: Tile[] = $state([]);
 	// Generate random offsets for each color at startup
-	const offsets = colors.map(() => ({
-		phase: Math.random() * Math.PI * 2,
-		scale: 0.5 + Math.random(),  // random scale between 0.5 and 1.5
-		freq: 0.8 + Math.random() * 0.4  // random frequency multiplier between 0.8 and 1.2
-	}));
+	let offsets;
+	let startTime: number;
+	let animationId: number;
+
+	$effect(() => {
+		setTimeout(() => {
+			colors = generateColorSources(Math.floor(Math.random() * 2) + 2);
+			offsets = colors.map(() => ({
+				phase: Math.random() * Math.PI * 2,
+				scale: 0.5 + Math.random(),  // random scale between 0.5 and 1.5
+				freq: 0.8 + Math.random() * 0.4  // random frequency multiplier between 0.8 and 1.2
+			}));
+			tiles = buildTiles(Math.floor(Math.random() * 12) + 3);
+		});
+		animationId = requestAnimationFrame(animate);
+		return () => {
+			cancelAnimationFrame(animationId);
+		};
+	});
 
 	function buildTiles(dimension: number): Tile[] {
 		const tiles: Tile[] = [];
@@ -133,6 +147,7 @@
 	}
 
 	function generateColorSources(count: number): ColorSource[] {
+		console.log('Generating', count, 'color sources');
 		const indexes: number[] = [];
 		const sources: ColorSource[] = [];
 		for (let i = 0; i < count; i++) {
@@ -159,16 +174,6 @@
 		return 1 - distance / Math.sqrt(WIDTH * WIDTH + HEIGHT * HEIGHT);
 	}
 
-	let startTime: number;
-	let animationId: number;
-
-	$effect(() => {
-		animationId = requestAnimationFrame(animate);
-		return () => {
-			cancelAnimationFrame(animationId);
-		};
-	});
-
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
 		const elapsed = (timestamp - startTime) / timefactor;
@@ -193,8 +198,6 @@
 			tile.color = mixbox.latentToRgb(tileLatent);
 			newTiles.push(tile);
 		}
-		// animate color positions in a lissajous pattern
-
 		selectedPattern(elapsed);
 		tiles = newTiles;
 		animationId = requestAnimationFrame(animate);
@@ -223,7 +226,6 @@
 	>
 		<defs>
 			<filter id="noise" x="0%" y="0%" width="100%" height="100%">
-				<!-- Create finer grain base noise -->
 				<feTurbulence
 					type="fractalNoise"
 					baseFrequency="1.5"
@@ -233,7 +235,6 @@
 					result="noiseBase"
 				/>
 
-				<!-- Second noise layer for texture variation -->
 				<feTurbulence
 					type="fractalNoise"
 					baseFrequency="0.8"
@@ -242,7 +243,6 @@
 					result="noise2"
 				/>
 
-				<!-- Combine noise layers -->
 				<feComposite
 					operator="arithmetic"
 					in="noiseBase"
@@ -252,27 +252,25 @@
 					result="combinedNoise"
 				/>
 
-				<!-- Soften overall -->
 				<feGaussianBlur stdDeviation="0.7" result="softNoise" />
 
-				<!-- Adjust contrast and brightness -->
 				<feComponentTransfer>
-					<feFuncR type="linear" slope="0.7" intercept="0.1" />
-					<feFuncG type="linear" slope="0.7" intercept="0.1" />
-					<feFuncB type="linear" slope="0.7" intercept="0.1" />
+					<feFuncR type="linear" slope="1" intercept="0" />
+					<feFuncG type="linear" slope="1" intercept="1" />
+					<feFuncB type="linear" slope="1" intercept="1" />
 				</feComponentTransfer>
 
-				<!-- Blend with original -->
 				<feBlend
 					in="SourceGraphic"
 					in2="softNoise"
-					mode="overlay"
+					mode="multiply"
 					result="final"
 				/>
 			</filter>
 		</defs>
 		{#each tiles as tile, i}
 			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2"
+						stroke-opacity="0.5"
 			/>
 			{#if DEBUG}
 				<text x={tile.x + tile.size / 2} y={tile.y + tile.size / 2} fill="#FFF" font-size="20" text-anchor="middle"
