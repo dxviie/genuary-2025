@@ -8,7 +8,7 @@
 	const svgId = "prompt-02-svg";
 </script>
 
-# Generative palette !WIP!
+# Generative palette
 
 <Prompt16 {svgId} />
 

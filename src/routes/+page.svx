@@ -30,7 +30,7 @@ import ImageDisplay from '$lib/ImageDisplay.svelte';
 
 ------
 
-**16 Generative palette (WIP)** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
+**16 Generative palette** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
 
 [View Sketch !WIP!](/prompt/16)
 
