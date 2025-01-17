@@ -46,8 +46,6 @@
 
 - 10: You can only use TAU in your code, no other number allowed.(TAU = 2 * pi = 6.2831853…)
 
-- 16: Generative palette.
-
 - 21: Create a collision detection system (no libraries allowed).
 
 - 29: Grid-based graphic design.
