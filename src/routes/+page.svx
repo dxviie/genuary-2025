@@ -1,4 +1,3 @@
-import ImageDisplay from '$lib/ImageDisplay.svelte';
 <script lang="ts">
 	import ImageDisplay from '$lib/ImageDisplay.svelte';
 
@@ -11,6 +10,11 @@ import ImageDisplay from '$lib/ImageDisplay.svelte';
 	{file: '/05/05c.png', alt: 'Prompt 05: black & white isometric art'},
 	{file: '/05/05b.png', alt: 'Prompt 05: tiny pinkish isometric art'},
 	{file: '/05/05a.png', alt: 'Prompt 05: zoomed in orange isometric art'},
+	];
+	const images16 = [
+	{file: '/16/16a.png', alt: 'Prompt 16: purple'},
+	{file: '/16/16b.png', alt: 'Prompt 16: green'},
+	{file: '/16/16c.png', alt: 'Prompt 16: debug'},
 	];
 </script>
 
@@ -32,7 +36,9 @@ import ImageDisplay from '$lib/ImageDisplay.svelte';
 
 **16 Generative palette** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
 
-[View Sketch !WIP!](/prompt/16)
+<ImageDisplay images={images16} />
+
+[View Sketch](/prompt/16)
 
 ------
 
