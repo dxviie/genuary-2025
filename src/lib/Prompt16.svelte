@@ -7,66 +7,57 @@
 	const { svgId } = $props();
 
 	const patterns = [
-		function lissajous(elapsed: number) {
-			for (let i = 0; i < colors.length; i++) {
-				const source = colors[i];
-				const offset = offsets[i];
-				const frequency = (1 + i * 0.5) * offset.freq;
-				const phase = i * Math.PI / colors.length + offset.phase;
+		function lissajous(elapsed: number, i: number) {
+			const source = colors[i];
+			const offset = offsets[i];
+			const frequency = (1 + i * 0.5) * offset.freq;
+			const phase = i * Math.PI / colors.length + offset.phase;
 
-				source.x = remap(Math.sin(elapsed * frequency + phase), -1, 1, 0, WIDTH);
-				source.y = remap(Math.sin(elapsed * frequency * 1.5 + phase), -1, 1, 0, HEIGHT);
-			}
+			source.x = remap(Math.sin(elapsed * frequency + phase), -1, 1, 0, WIDTH);
+			source.y = remap(Math.sin(elapsed * frequency * 1.5 + phase), -1, 1, 0, HEIGHT);
 		},
 
-		function spiral(elapsed: number) {
-			for (let i = 0; i < colors.length; i++) {
-				const source = colors[i];
-				const offset = offsets[i];
-				const angle = elapsed * offset.freq + (i * Math.PI * 2 / colors.length) + offset.phase;
-				const radius = Math.sin(elapsed * 0.5 + offset.phase) * 0.4 * offset.scale + 0.6;
+		function spiral(elapsed: number, i: number) {
+			const source = colors[i];
+			const offset = offsets[i];
+			const angle = elapsed * offset.freq + (i * Math.PI * 2 / colors.length) + offset.phase;
+			const radius = Math.sin(elapsed * 0.5 + offset.phase) * 0.4 * offset.scale + 0.6;
 
-				source.x = remap(Math.cos(angle) * radius, -1, 1, 0, WIDTH);
-				source.y = remap(Math.sin(angle) * radius, -1, 1, 0, HEIGHT);
-			}
+			source.x = remap(Math.cos(angle) * radius, -1, 1, 0, WIDTH);
+			source.y = remap(Math.sin(angle) * radius, -1, 1, 0, HEIGHT);
+
 		},
 
-		function figure8(elapsed: number) {
-			for (let i = 0; i < colors.length; i++) {
-				const source = colors[i];
-				const offset = offsets[i];
-				const t = elapsed * offset.freq + (i * Math.PI / colors.length) + offset.phase;
+		function figure8(elapsed: number, i: number) {
+			const source = colors[i];
+			const offset = offsets[i];
+			const t = elapsed * offset.freq + (i * Math.PI / colors.length) + offset.phase;
 
-				source.x = remap(Math.sin(2 * t), -1, 1, 0, WIDTH);
-				source.y = remap(Math.sin(t) * offset.scale, -1, 1, 0, HEIGHT);
-			}
+			source.x = remap(Math.sin(2 * t), -1, 1, 0, WIDTH);
+			source.y = remap(Math.sin(t) * offset.scale, -1, 1, 0, HEIGHT);
 		},
 
-		function roseCurve(elapsed: number) {
-			for (let i = 0; i < colors.length; i++) {
-				const source = colors[i];
-				const offset = offsets[i];
-				const k = (2 + (i % 3)) * offset.freq;
-				const t = elapsed + (i * Math.PI / colors.length) + offset.phase;
+		function roseCurve(elapsed: number, i: number) {
+			const source = colors[i];
+			const offset = offsets[i];
+			const k = (2 + (i % 3)) * offset.freq;
+			const t = elapsed + (i * Math.PI / colors.length) + offset.phase;
 
-				const r = Math.cos(k * t) * offset.scale;
-				source.x = remap(r * Math.cos(t), -1, 1, 0, WIDTH);
-				source.y = remap(r * Math.sin(t), -1, 1, 0, HEIGHT);
-			}
+			const r = Math.cos(k * t) * offset.scale;
+			source.x = remap(r * Math.cos(t), -1, 1, 0, WIDTH);
+			source.y = remap(r * Math.sin(t), -1, 1, 0, HEIGHT);
 		},
 
-		function parametric(elapsed: number) {
-			for (let i = 0; i < colors.length; i++) {
-				const source = colors[i];
-				const offset = offsets[i];
-				const fx = (1 + i * 0.2) * offset.freq;
-				const fy = (1.5 + i * 0.3) * offset.freq;
+		function parametric(elapsed: number, i: number) {
+			const source = colors[i];
+			const offset = offsets[i];
+			const fx = (1 + i * 0.2) * offset.freq;
+			const fy = (1.5 + i * 0.3) * offset.freq;
 
-				source.x = remap(Math.sin(elapsed * fx + offset.phase) +
-					Math.cos(elapsed * fy * 0.5), -2, 2, 0, WIDTH);
-				source.y = remap(Math.sin(elapsed * fy + offset.phase) +
-					Math.cos(elapsed * fx * 0.5), -2, 2, 0, HEIGHT);
-			}
+			source.x = remap(Math.sin(elapsed * fx + offset.phase) +
+				Math.cos(elapsed * fy * 0.5), -2, 2, 0, WIDTH);
+			source.y = remap(Math.sin(elapsed * fy + offset.phase) +
+				Math.cos(elapsed * fx * 0.5), -2, 2, 0, HEIGHT);
 		}
 	];
 	const WIDTH = 1080;
@@ -78,14 +69,14 @@
 		'rgb(255, 105, 0)',   // Cadmium Orange
 		'rgb(255, 39, 2)',    // Cadmium Red
 		'rgb(128, 2, 46)',    // Quinacridone Magenta
-		// 'rgb(78, 0, 66)',     // Cobalt Violet
+		'rgb(78, 0, 66)',     // Cobalt Violet
 		'rgb(25, 0, 89)',     // Ultramarine Blue
 		'rgb(0, 33, 133)',    // Cobalt Blue
-		// 'rgb(13, 27, 68)',    // Phthalo Blue
-		// 'rgb(0, 60, 50)',     // Phthalo Green
+		'rgb(13, 27, 68)',    // Phthalo Blue
+		'rgb(0, 60, 50)',     // Phthalo Green
 		'rgb(7, 109, 22)',    // Permanent Green
-		'rgb(107, 148, 4)'   // Sap Green
-		// 'rgb(123, 72, 0)'     // Burnt Sienna
+		'rgb(107, 148, 4)',   // Sap Green
+		'rgb(123, 72, 0)'     // Burnt Sienna
 	];
 
 	type Tile = {
@@ -94,6 +85,7 @@
 		size: number;
 		index: number;
 		color: string;
+		closeness?: number[];
 	};
 
 	type ColorSource = {
@@ -101,12 +93,13 @@
 		latent: number[];
 		x: number;
 		y: number;
+		radius: number;
+		index: number;
+		animationFunction: (elapsed: number, index: number) => void;
 	}
 
 	let DEBUG = $state(false);
-	const selectedPatternIndex = Math.floor(Math.random() * patterns.length);
-	const selectedPattern = patterns[selectedPatternIndex];
-	const timefactor = Math.random() * 3000 + 1000;
+	const timeFactor = 2000 + Math.random() * 5000;
 	let colors: ColorSource[] = $state([]);
 	let tiles: Tile[] = $state([]);
 	// Generate random offsets for each color at startup
@@ -116,7 +109,7 @@
 
 	$effect(() => {
 		setTimeout(() => {
-			colors = generateColorSources(Math.floor(Math.random() * 2) + 2);
+			colors = generateColorSources(Math.floor(Math.random() * 5) + 2);
 			offsets = colors.map(() => ({
 				phase: Math.random() * Math.PI * 2,
 				scale: 0.5 + Math.random(),  // random scale between 0.5 and 1.5
@@ -133,13 +126,12 @@
 	function buildTiles(dimension: number): Tile[] {
 		const tiles: Tile[] = [];
 		const size = WIDTH / dimension;
-		const tileCount = dimension * dimension;
 		for (let i = 0; i < dimension; i++) {
 			for (let j = 0; j < dimension; j++) {
 				const x = i * size;
 				const y = j * size;
 				const index = i * dimension + j;
-				const color = mixbox.lerp(colors[0].color, colors[1].color, index / tileCount);
+				const color = '#000';
 				tiles.push({ x, y, size, index, color });
 			}
 		}
@@ -160,24 +152,30 @@
 			indexes.push(index);
 			const color = PIGMENT_COLORS[index];
 			const latent = mixbox.rgbToLatent(color);
-			sources.push({ x, y, color, latent });
-			console.log('source', i, 'color', color, 'latent', latent);
+			const radius = Math.random() * (WIDTH / 2) + (WIDTH * .6);
+			const patternIndex = Math.floor(Math.random() * patterns.length);
+			const pattern = patterns[patternIndex];
+			sources.push({ x, y, color, latent, radius, animationFunction: pattern, index: i });
+			console.log('source', i, 'color', color, 'latent', latent, 'radius', radius, 'pattern', patternIndex);
 		}
 		return sources;
 	}
 
 	// return 0 to 1, 0 is farthest away (= WIDTH) and 1 is closest (= 0)
 	function getClosenessFactor(tile: Tile, source: ColorSource): number {
-		const dx = tile.x - source.x;
-		const dy = tile.y - source.y;
-		const distance = Math.sqrt(dx * dx + dy * dy);
-		return 1 - distance / Math.sqrt(WIDTH * WIDTH + HEIGHT * HEIGHT);
+		const dx = tile.x + (tile.size / 2) - source.x;
+		const dy = tile.y + (tile.size / 2) - source.y;
+		const distance = Math.sqrt(dx * dx + dy * dy) - (tile.size / 2);
+		// if (distance > source.radius) return 0.05;
+		return Math.max(0.001, 1 - distance / source.radius);//(source.radius * source.radius);
 	}
+
+	let osc = $state(0);
 
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
-		const elapsed = (timestamp - startTime) / timefactor;
-		const osc = remap(Math.sin(elapsed), -1, 1, 0.75, 1.1);
+		const elapsed = (timestamp - startTime) / timeFactor;
+		osc = remap(Math.sin(elapsed), -1, 1, 0.8, .95);
 		const newTiles = [];
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = { ...tiles[i] };
@@ -196,16 +194,20 @@
 				tileLatent[k] = totalCloseness;
 			}
 			tile.color = mixbox.latentToRgb(tileLatent);
+			tile.closeness = closeness;
 			newTiles.push(tile);
 		}
-		selectedPattern(elapsed);
+		for (const color of colors) {
+			color.animationFunction(elapsed, color.index);
+		}
 		tiles = newTiles;
 		animationId = requestAnimationFrame(animate);
 	}
 
 	function normalize(array: number[], factor = 1) {
 		const sum = array.reduce((acc, val) => acc + val, 0) * factor;
-		return array.map(val => val / sum);
+		// if (sum < 1) return array;
+		return array.map(val => (val / sum));
 	}
 
 	function remap(value: number, fromMin: number, fromMax: number, toMin: number, toMax: number) {
@@ -268,24 +270,35 @@
 				/>
 			</filter>
 		</defs>
-		{#each tiles as tile, i}
+
+		{#each tiles as tile}
+
 			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2"
 						stroke-opacity="0.5"
 			/>
-			{#if DEBUG}
-				<text x={tile.x + tile.size / 2} y={tile.y + tile.size / 2} fill="#FFF" font-size="20" text-anchor="middle"
-							alignment-baseline="middle">{i}</text>
+		{/each}
+		{#each tiles as tile}
+			{#if DEBUG && tile.closeness}
+				{#each tile.closeness as closeness, j}
+					<circle cx={tile.x + 18} cy={tile.y + 20 +  20 * j} r={20 * closeness} fill={colors[j].color} stroke="#fff" stroke-width="2"
+									stroke-opacity={closeness} />
+					<text x={tile.x + 38} y={tile.y + 25 + 20 * j} fill="#fff" font-size="10" text-anchor="start"
+								alignment-baseline="hanging">{closeness.toFixed(2)}</text>
+				{/each}
 			{/if}
 		{/each}
-		{#if DEBUG}
-			{#each colors as color}
-				<circle cx={color.x} cy={color.y} r="10" fill={color.color} stroke="#000" />
-			{/each}
-		{:else}
+
+		{#if !DEBUG}
 			{#each colors as color, i}
-				<rect x={10} y={10 + i * 20} width="20" height="20" fill={color.color} />
+				<rect x={10} y={10 + i * 20} width="20" height="20" fill={color.color} stroke-width="2" stroke="#fff" />
 			{/each}
-			<text x={15} y={10 + (colors.length + 1) * 20} fill="#FFF">{selectedPatternIndex}</text>
+			<text x={12} y={15 + (colors.length + 1) * 20} fill="#FFF" stroke-width="2"
+						font-weight="bold">{Math.round(remap(100 - (osc * 100), 5, 20, 0, 99))}</text>
+		{:else}
+			{#each colors as color}
+				<circle cx={color.x} cy={color.y} r={color.radius} fill="none" stroke="#fff" />
+				<circle cx={color.x} cy={color.y} r="10" fill={color.color} stroke="#000" stroke-width="3" />
+			{/each}
 		{/if}
 	</svg>
 
