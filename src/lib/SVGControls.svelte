@@ -1,13 +1,21 @@
 <script lang="ts">
+	import { FFmpeg } from '@ffmpeg/ffmpeg';
+
 	const { svgId } = $props();
+
+	const isLocalhost = import.meta.env.DEV; // true in development
+
 
 	let mediaRecorder: MediaRecorder;
 	let recordedChunks: BlobPart[] = [];
 	let animationFrameId: number;
 
 	function getSupportedMimeType(): string {
+		// Prioritize H.264 codec since that matches your FFmpeg command
 		const types = [
+			'video/mp4;codecs=h264',
 			'video/webm;codecs=h264',
+			'video/webm;codecs=vp9', // Fallback to VP9 which can provide similar quality
 			'video/webm;codecs=vp8',
 			'video/webm',
 			'video/mp4'
@@ -31,9 +39,8 @@
 
 		// Create a canvas element
 		const canvas = document.createElement('canvas');
-		const svgRect = svgElement.getBoundingClientRect();
-		canvas.width = svgRect.width;
-		canvas.height = svgRect.height;
+		canvas.width = 1080;//svgRect.width;
+		canvas.height = 1080;//svgRect.height;
 		const ctx = canvas.getContext('2d');
 
 		if (!ctx) return;
@@ -171,17 +178,147 @@
 		img.src = url;
 	}
 
+	// ffmpeg stuff
+	let ffmpeg;
+	let recording = $state(false);
+	let frames = [];
+
 	// Cleanup on component unmount
 	$effect(() => {
-		return () => {
-			if (animationFrameId) {
-				cancelAnimationFrame(animationFrameId);
-			}
-			if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-				mediaRecorder.stop();
-			}
-		};
+
+		if (animationFrameId) {
+			cancelAnimationFrame(animationFrameId);
+		}
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+		}
+		if (isLocalhost) {
+			loadFfmpeg();
+		}
 	});
+
+	let loaded = $state(false);
+
+
+	const loadFfmpeg = async () => {
+		ffmpeg = new FFmpeg();
+		ffmpeg.on('log', ({ message }) => {
+			console.log(message);
+		});
+		// toBlobURL is used to bypass CORS issue, urls with the same
+		// domain can be used directly.
+		await ffmpeg.load({
+			coreURL: `/ffmpeg/ffmpeg-core.js`,
+			wasmURL: `/ffmpeg/ffmpeg-core.wasm`
+		});
+		loaded = true;
+		console.log('FFmpeg loaded');
+	};
+
+	async function toggleRecordingFfmpeg() {
+		if (!recording) {
+			startRecordingFfmpeg();
+			recording = true;
+		} else {
+			stopRecordingFfmpeg();
+			recording = false;
+		}
+	}
+
+	async function startRecordingFfmpeg() {
+		frames = [];
+		recording = true;
+		recordFrame();
+	}
+
+	async function stopRecordingFfmpeg() {
+		recording = false;
+		await generateVideo();
+	}
+
+	async function recordFrame() {
+		if (!recording) return;
+
+		const svgElement = document.getElementById(svgId);
+		if (!svgElement) {
+			console.error('No SVG element found (looking for id "prompt-svg")');
+			return;
+		}
+
+		// Convert SVG to canvas
+		const svgData = new XMLSerializer().serializeToString(svgElement);
+		const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+		const svgUrl = URL.createObjectURL(svgBlob);
+
+		// Create a canvas element
+		const frameCanvas = document.createElement('canvas');
+		frameCanvas.width = 1080;//svgRect.width;
+		frameCanvas.height = 1080;//svgRect.height;
+		const ctx = frameCanvas.getContext('2d');
+
+		const img = new Image();
+		img.onload = () => {
+			frameCanvas.width = img.width;
+			frameCanvas.height = img.height;
+			// const ctx = frameCanvas.getContext('2d');
+			ctx.drawImage(img, 0, 0);
+
+			// Store frame
+			frames.push(frameCanvas.toDataURL('image/png'));
+
+			// Schedule next frame
+			if (recording) {
+				requestAnimationFrame(recordFrame);
+			}
+
+			URL.revokeObjectURL(svgUrl);
+		};
+		img.src = svgUrl;
+	}
+
+	async function generateVideo() {
+		// Write frames to FFmpeg
+		for (let i = 0; i < frames.length; i++) {
+			const base64Data = frames[i].split(',')[1];
+			const binaryData = atob(base64Data);
+			const data = new Uint8Array(binaryData.length);
+			for (let j = 0; j < binaryData.length; j++) {
+				data[j] = binaryData.charCodeAt(j);
+			}
+			await ffmpeg.writeFile(`frame${i.toString().padStart(4, '0')}.png`, data);
+			console.log('========== Frame written:', i);
+		}
+		console.log('========== All frames written');
+
+		// Generate video from frames
+		await ffmpeg.exec([
+			'-framerate', '30',
+			'-pattern_type', 'glob',
+			'-i', 'frame*.png',
+			'-c:v', 'libx264',
+			'-pix_fmt', 'yuv420p',
+			'-crf', '23',
+			'output.mp4'
+		]);
+		console.log('========== Video generated');
+
+		// Read the output file
+		const data = await ffmpeg.readFile('output.mp4');
+		console.log('========== Video data:', data);
+		const blob = new Blob([data], { type: 'video/mp4' });
+		const url = URL.createObjectURL(blob);
+
+		// Create download link
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'animation.mp4';
+		console.log('========== Downloading video');
+		a.click();
+
+		// Cleanup
+		URL.revokeObjectURL(url);
+		frames = [];
+	}
 </script>
 
 <div class="buttons">
@@ -189,6 +326,11 @@
 	<button onclick={toggleRecording}>
 		{isRecording ? 'Stop Recording' : 'Start Recording'}
 	</button>
+	{#if isLocalhost}
+		<button onclick={toggleRecordingFfmpeg}>
+			{recording ? 'Stop Recording FFMPEG' : 'Start Recording FFMPEG'}
+		</button>
+	{/if}
 	<button onclick={saveSvgAsPng}>
 		Save as PNG
 	</button>
