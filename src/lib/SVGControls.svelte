@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FFmpeg } from '@ffmpeg/ffmpeg';
+	import { recorderState } from '$lib/ffmpegRecorder.svelte';
 
 	const { svgId } = $props();
 
@@ -180,12 +181,10 @@
 
 	// ffmpeg stuff
 	let ffmpeg;
-	let recording = $state(false);
 	let frames = [];
 
 	// Cleanup on component unmount
 	$effect(() => {
-
 		if (animationFrameId) {
 			cancelAnimationFrame(animationFrameId);
 		}
@@ -196,7 +195,6 @@
 			loadFfmpeg();
 		}
 	});
-
 	let loaded = $state(false);
 
 
@@ -216,28 +214,27 @@
 	};
 
 	async function toggleRecordingFfmpeg() {
-		if (!recording) {
+		if (!recorderState.recording) {
 			startRecordingFfmpeg();
-			recording = true;
 		} else {
 			stopRecordingFfmpeg();
-			recording = false;
 		}
 	}
 
 	async function startRecordingFfmpeg() {
 		frames = [];
-		recording = true;
+		recorderState.recording = true;
+		recorderState.frame = 0;
 		recordFrame();
 	}
 
 	async function stopRecordingFfmpeg() {
-		recording = false;
+		recorderState.recording = false;
 		await generateVideo();
 	}
 
 	async function recordFrame() {
-		if (!recording) return;
+		if (!recorderState.recording) return;
 
 		const svgElement = document.getElementById(svgId);
 		if (!svgElement) {
@@ -265,9 +262,13 @@
 
 			// Store frame
 			frames.push(frameCanvas.toDataURL('image/png'));
+			recorderState.frame += 1;
+			if (recorderState.frame >= recorderState.fps * recorderState.maxSeconds) {
+				stopRecordingFfmpeg();
+			}
 
 			// Schedule next frame
-			if (recording) {
+			if (recorderState.recording) {
 				requestAnimationFrame(recordFrame);
 			}
 
@@ -286,13 +287,12 @@
 				data[j] = binaryData.charCodeAt(j);
 			}
 			await ffmpeg.writeFile(`frame${i.toString().padStart(4, '0')}.png`, data);
-			console.log('========== Frame written:', i);
 		}
 		console.log('========== All frames written');
 
 		// Generate video from frames
 		await ffmpeg.exec([
-			'-framerate', '30',
+			'-framerate', `${recorderState.fps}`,
 			'-pattern_type', 'glob',
 			'-i', 'frame*.png',
 			'-c:v', 'libx264',
@@ -311,7 +311,7 @@
 		// Create download link
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = 'animation.mp4';
+		a.download = `genuary25.d17e.dev-${createDateTimeTimestamp()}.mp4`;
 		console.log('========== Downloading video');
 		a.click();
 
@@ -328,7 +328,7 @@
 	</button>
 	{#if isLocalhost}
 		<button onclick={toggleRecordingFfmpeg}>
-			{recording ? 'Stop Recording FFMPEG' : 'Start Recording FFMPEG'}
+			{recorderState.recording ? 'Stop Recording FFMPEG' : 'Start Recording FFMPEG'}
 		</button>
 	{/if}
 	<button onclick={saveSvgAsPng}>

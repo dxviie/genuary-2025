@@ -3,6 +3,7 @@
 	//@ts-expect-error
 	import mixbox from 'mixbox';
 	import SVGContainer from '$lib/SVGContainer.svelte';
+	import { recorderState } from '$lib/ffmpegRecorder.svelte';
 
 	const { svgId } = $props();
 
@@ -174,7 +175,11 @@
 
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
-		const elapsed = (timestamp - startTime) / timeFactor;
+		let elapsed = (timestamp - startTime) / timeFactor;
+		if (recorderState.recording) {
+			// * 2.5 as we're usually drawing at 60+ fps
+			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+		}
 		osc = remap(Math.sin(elapsed), -1, 1, 0.8, .95);
 		const newTiles = [];
 		for (let i = 0; i < tiles.length; i++) {
