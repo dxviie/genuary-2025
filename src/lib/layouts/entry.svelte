@@ -6,6 +6,10 @@
 	<a href="/">Back to overview</a>
 	{@render children()}
 </main>
+<footer>
+	<a href="https://github.com/dxviie/genuary-2025" target="_blank">GitHub</a>
+	<a href="https://forms.d17e.dev/contact" target="_blank">Contact</a>
+</footer>
 
 <style>
     :global(body) {
@@ -63,5 +67,10 @@
         width: 100%;
         height: auto;
         object-fit: contain;
+    }
+
+    :global(footer) {
+        text-align: center;
+        padding: 1rem;
     }
 </style>
