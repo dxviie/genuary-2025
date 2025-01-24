@@ -1,0 +1,17 @@
+---
+	layout: entry
+---
+
+<script>
+	import Prompt29 from '$lib/Prompt29.svelte';
+	import SVGControls from '$lib/SVGControls.svelte';
+	const svgId = "prompt-29-svg";
+</script>
+
+# Grid-based graphic design (WIP)
+
+<Prompt29 {svgId} />
+
+###
+
+<SVGControls {svgId} />
