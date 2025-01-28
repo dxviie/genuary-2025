@@ -5,8 +5,8 @@
 	let DEBUG = $state(false);
 
 	const WIDTH = 1080;
-	const HEIGHT = 720;
-	const TILE_COUNT_X = 12;
+	const HEIGHT = 1080;
+	const TILE_COUNT_X = 8;
 	const TILE_SIZE_X = WIDTH / TILE_COUNT_X;
 	const TILE_COUNT_Y = Math.round(HEIGHT / TILE_SIZE_X);
 	const TILE_SIZE_Y = HEIGHT / TILE_COUNT_Y;
@@ -17,19 +17,15 @@
 		width: number;
 		height: number;
 		index: number;
+		shape: number; // index of the shape this tile belongs to
 	}
-
-	let tiles: Tile[] = Array.from({ length: TILE_COUNT_X * TILE_COUNT_Y }, (_, index) => {
-		const x = (index % TILE_COUNT_X) * TILE_SIZE_X;
-		const y = (Math.floor(index / TILE_COUNT_X)) * TILE_SIZE_Y;
-		return { x, y, index, width: TILE_SIZE_X, height: TILE_SIZE_Y };
-	});
 
 	type Shape = {
 		tiles: Tile[];
 		d: string;
 		color: string;
 		index: number;
+		swapCount: number;
 	};
 
 	type Point = { x: number; y: number };
@@ -103,10 +99,16 @@
 	}
 
 	const rotation = Math.random() * 137.508;
-	let shapes: Shape[] = $state([{ tiles, d: generatePathFromTiles(tiles), color: getColor(0), index: 0 }]);
+	let shapes: Shape[] = $state([buildInitialShape()]);
 
-	// generate a color based on the index of the shape
-
+	function buildInitialShape(): Shape {
+		let tiles: Tile[] = Array.from({ length: TILE_COUNT_X * TILE_COUNT_Y }, (_, index) => {
+			const x = (index % TILE_COUNT_X) * TILE_SIZE_X;
+			const y = (Math.floor(index / TILE_COUNT_X)) * TILE_SIZE_Y;
+			return { x, y, index, width: TILE_SIZE_X, height: TILE_SIZE_Y, shape: 0 };
+		});
+		return { tiles, d: generatePathFromTiles(tiles), color: getColor(0), index: 0, swapCount: 0 };
+	}
 
 	function getColor(index: number): string {
 		const hue = (index * rotation) % 360;
@@ -146,8 +148,22 @@
 				bottomTiles = selectedShape.tiles.filter(t => t.y > splitY);
 			}
 			console.log('split hor', splitY, topTiles, bottomTiles);
-			newShapes.push({ tiles: topTiles, d: generatePathFromTiles(topTiles), color: selectedShape.color, index: selectedShape.index });
-			newShapes.push({ tiles: bottomTiles, d: generatePathFromTiles(bottomTiles), color: getColor(shapes.length), index: shapes.length });
+			let newTopTiles = topTiles.map(t => ({ ...t, shape: selectedShape.index }));
+			let newBottomTiles = bottomTiles.map(t => ({ ...t, shape: shapes.length }));
+			newShapes.push({
+				tiles: newTopTiles,
+				d: generatePathFromTiles(newTopTiles),
+				color: selectedShape.color,
+				index: selectedShape.index,
+				swapCount: selectedShape.swapCount
+			});
+			newShapes.push({
+				tiles: newBottomTiles,
+				d: generatePathFromTiles(newBottomTiles),
+				color: getColor(shapes.length),
+				index: shapes.length,
+				swapCount: 0
+			});
 		} else {
 			// split vertically
 			let splitX = (minX + TILE_SIZE_X) + Math.floor(Math.random() * (widthInTiles - 2)) * TILE_SIZE_X;
@@ -160,8 +176,22 @@
 			}
 			console.log('split ver', splitX, leftTiles, rightTiles);
 			newShapes = shapes.filter(s => s !== selectedShape);
-			newShapes.push({ tiles: leftTiles, d: generatePathFromTiles(leftTiles), color: selectedShape.color, index: selectedShape.index });
-			newShapes.push({ tiles: rightTiles, d: generatePathFromTiles(rightTiles), color: getColor(shapes.length), index: shapes.length });
+			let newLeftTiles: Tile[] = leftTiles.map(t => ({ ...t, shape: selectedShape.index }));
+			let newRightTiles: Tile[] = rightTiles.map(t => ({ ...t, shape: shapes.length }));
+			newShapes.push({
+				tiles: newLeftTiles,
+				d: generatePathFromTiles(newLeftTiles),
+				color: selectedShape.color,
+				index: selectedShape.index,
+				swapCount: selectedShape.swapCount
+			});
+			newShapes.push({
+				tiles: newRightTiles,
+				d: generatePathFromTiles(newRightTiles),
+				color: getColor(shapes.length),
+				index: shapes.length,
+				swapCount: 0
+			});
 		}
 
 		if (newShapes.filter(s => s.tiles.length === 0).length > 0) {
@@ -172,99 +202,105 @@
 		shapes = newShapes;
 	}
 
-	function isInsideOfShape(point: Point, shape: Shape): boolean {
-		for (let i = 0; i < shape.tiles.length; i++) {
-			const tile = shape.tiles[i];
-			if (point.x >= tile.x && point.x <= tile.x + tile.width && point.y >= tile.y && point.y <= tile.y + tile.height) {
-				return true;
-			}
-		}
-		return false;
+	function getNeighboringIndecesForTileIndex(index: number): Set<number> {
+		const x = index % TILE_COUNT_X;
+		const y = Math.floor(index / TILE_COUNT_X);
+		const neighbors = new Set<number>();
+		if (x > 0) neighbors.add(index - 1);
+		if (x < TILE_COUNT_X - 1) neighbors.add(index + 1);
+		if (y > 0) neighbors.add(index - TILE_COUNT_X);
+		if (y < TILE_COUNT_Y - 1) neighbors.add(index + TILE_COUNT_X);
+		return neighbors;
 	}
 
-	function collectInternalPoints(shape: Shape): Point[] {
-		const minX = Math.min(...shape.tiles.map(t => t.x));
-		const maxX = Math.max(...shape.tiles.map(t => t.x + t.width));
-		const minY = Math.min(...shape.tiles.map(t => t.y));
-		const maxY = Math.max(...shape.tiles.map(t => t.y + t.height));
-		const internalPoints: Point[] = [];
-		for (let x = minX; x <= maxX; x += TILE_SIZE_X) {
-			for (let y = minY; y <= maxY; y += TILE_SIZE_Y) {
-				if (x <= 0 || x >= WIDTH || y <= 0 || y >= HEIGHT) {
-					// canvas boundaries
-					continue;
+	function getNeighboringTilesForTile(tile: Tile, includeOwn = false): Set<Tile> {
+		const neighbors = getNeighboringIndecesForTileIndex(tile.index);
+		const tiles = new Set<Tile>();
+		shapes.forEach(shape => {
+			shape.tiles.forEach(t => {
+				if (!includeOwn && shape.index === tile.shape) return;
+				if (neighbors.has(t.index)) {
+					tiles.add(t);
 				}
-				if (!isInsideOfShape({ x, y }, shape)) {
-					// not inside the shape
-					console.log('not inside', x, y);
-					continue;
-				}
-				internalPoints.push({ x, y });
-			}
-		}
-		return internalPoints;
+			});
+		});
+		return tiles;
 	}
+
+	function getNeighboringTilesForShape(shape: Shape): Tile[] {
+		const neighbors = new Set<Tile>();
+		shape.tiles.forEach(tile => {
+			const tileNeighbors = getNeighboringTilesForTile(tile);
+			tileNeighbors.forEach(t =>
+				neighbors.add(t)
+			);
+		});
+		return Array.from(neighbors);
+	}
+
+	function canSwapTile(tile: Tile | undefined): boolean {
+		if (!tile) return false;
+		const neighbors = getNeighboringTilesForTile(tile, true);
+		let count = 0;
+		neighbors.forEach(t => {
+			if (t.shape === tile.shape) count++;
+		});
+		return count > 2;
+	}
+
+	const MAX_SWAPS = 3;
 
 	function swap() {
 		let newShapes = shapes.filter(s => true);
-		// let selectedShape = newShapes.reduce((max, shape) => shape.tiles.length > max.tiles.length ? shape : max, newShapes[0]);
-		let selectedShape = newShapes[Math.floor(Math.random() * newShapes.length)];
+		let eligibleShapes = newShapes.filter(s => s.swapCount < MAX_SWAPS);
+		let selectedShape = eligibleShapes[Math.floor(Math.random() * eligibleShapes.length)];
+		if (!selectedShape) {
+			console.warn('No shape found with less than', MAX_SWAPS, 'swaps');
+			return;
+		}
 		if (selectedShape.tiles.length < 2) {
 			console.warn('Cannot subdivide a shape with less than 2 tiles');
 			return;
 		}
-		let points = collectInternalPoints(selectedShape);
-		console.log('selectedShape', $state.snapshot(selectedShape), 'internal points', [...points]);
-		// find the neighboring shape with the most common internal points
+		console.log('Selected shape', $state.snapshot(selectedShape));
 
-		const overlappingPointsMap = new Map<Shape, Point[]>();
-		newShapes.forEach(s => {
-			if (s.index === selectedShape.index) return;
-			let currentPoints = collectInternalPoints(s);
-			const overlappingPoints = currentPoints.filter(p => points.some(p2 => arePointsEqual(p, p2)));
-			overlappingPointsMap.set(s, overlappingPoints);
-		});
-		// select shape with most overlap points as neighborShape
-		let neighborShape = newShapes.reduce((max, shape) => {
-			const points = overlappingPointsMap.get(shape);
-			return points && points.length > (overlappingPointsMap.get(max)?.length || 0) ? shape : max;
-		}, newShapes[0]);
-		const ols = overlappingPointsMap.get(neighborShape);
-		console.log('neighborShape', $state.snapshot(neighborShape), 'overlapping points', ols ? [...ols] : '--');
+		let neighbors = getNeighboringTilesForShape(selectedShape);
+		console.log('Neighbors', $state.snapshot(neighbors));
 
-		if (!selectedShape || !neighborShape) {
-			console.warn('Could not find two neighboring shapes to swap');
+		let index = 0;
+		let selectedTile;
+		let isValidTile = false;
+		while ((!selectedTile || !isValidTile) && index < neighbors.length) {
+			selectedTile = neighbors[index++];
+			isValidTile = canSwapTile(selectedTile);
+		}
+		if (!selectedTile || !isValidTile) {
+			console.warn('No valid tile found to swap', $state.snapshot(selectedTile), isValidTile);
 			return;
 		}
-		// collect all common internal points for both shapes
-		let selectedPoints = collectInternalPoints(selectedShape);
-		let neighborPoints = collectInternalPoints(neighborShape);
-		let commonPoints = selectedPoints.filter(p => neighborPoints.some(p2 => arePointsEqual(p, p2)));
-		console.log('commonPoints', commonPoints);
+		console.log('Neighbor tile', $state.snapshot(selectedTile));
 
-		const selectedPoint = commonPoints[Math.floor(Math.random() * commonPoints.length)];
-		// get the neighboring tile that has the selected point
-		const selectedTile = selectedShape.tiles.find(t => {
-			return t.x <= selectedPoint.x && t.x + t.width >= selectedPoint.x && t.y <= selectedPoint.y && t.y + t.height >= selectedPoint.y;
-		});
-		if (!selectedTile) {
-			console.warn('Could not find selected tile');
+		let neighborShape = shapes.find(s => s.index === selectedTile.shape);
+		if (!neighborShape) {
+			console.warn('No neighbor shape found');
 			return;
 		}
 
 		newShapes = newShapes.filter(s => s !== selectedShape);
-		newShapes = newShapes.filter(s => s !== neighborShape);
+		newShapes = newShapes.filter(s => s.index !== selectedTile.shape);
 		const newSelectedShape = {
-			tiles: selectedShape.tiles.filter(t => t !== selectedTile),
+			tiles: selectedShape.tiles.concat(selectedTile).map(t => ({ ...t, shape: selectedShape.index })),
 			color: selectedShape.color,
 			d: '',
-			index: selectedShape.index
+			index: selectedShape.index,
+			swapCount: selectedShape.swapCount + 1
 		};
 		const newNeighborShape = {
-			tiles: neighborShape.tiles.concat(selectedTile),
+			tiles: neighborShape.tiles.filter(t => t !== selectedTile).map(t => ({ ...t, shape: neighborShape.index })),
 			color: neighborShape.color,
 			d: '',
-			index: neighborShape.index
+			index: neighborShape.index,
+			swapCount: neighborShape.swapCount + 1
 		};
 		newSelectedShape.d = generatePathFromTiles(newSelectedShape.tiles);
 		newNeighborShape.d = generatePathFromTiles(newNeighborShape.tiles);
@@ -274,7 +310,7 @@
 	}
 
 	function doIt() {
-		const divisions = Math.floor(Math.random() * 5) + 3;
+		const divisions = Math.floor(Math.random() * 3) + 2;
 		for (let i = 0; i < divisions; i++) {
 			subDivide();
 		}
@@ -290,6 +326,9 @@
 		console.debug('Prompt29 mounted', svgId);
 		setTimeout(() => {
 			doIt();
+			// subDivide();
+			// subDivide();
+			// subDivide();
 		}, 0);
 		return () => {
 			console.debug('Prompt29 unmounted', svgId);
@@ -306,26 +345,25 @@
 		width={`${WIDTH}`}
 		height={`${HEIGHT}`}
 	>
-
-		{#if DEBUG}
-			{#each tiles as tile}
-				<rect
-					x={tile.x}
-					y={tile.y}
-					width={TILE_SIZE_X}
-					height={TILE_SIZE_Y}
-					fill="none"
-					stroke="#FF0000"
-					stroke-width="2"
-				/>
-			{/each}
-		{/if}
-
 		{#each shapes as shape}
 			<path d={shape.d} fill={shape.color} opacity=".5" stroke="#000" stroke-width="20" />
 			{#if DEBUG}
+				{#if shape.tiles && shape.tiles.length > 0}
+					<text x={shape.tiles[0].x + shape.tiles[0].width/3} y={shape.tiles[0].y + shape.tiles[0].height / 2} fill="#000"
+								font-size="50">{shape.index}</text>
+				{/if}
 				{#each shape.tiles as tile}
+					<rect
+						x={tile.x}
+						y={tile.y}
+						width={TILE_SIZE_X}
+						height={TILE_SIZE_Y}
+						fill="none"
+						stroke="#FF0000"
+						stroke-width="2"
+					/>
 					<text x={tile.x + 10} y={tile.y + 20} fill="#000" font-size="20">{`(${tile.x}, ${tile.y})`}</text>
+					<text x={tile.x + 10} y={tile.y + 40} fill="#000" font-size="20">{tile.index}</text>
 				{/each}
 			{/if}
 		{/each}
@@ -334,11 +372,9 @@
 <hr />
 <div>
 	<input type="checkbox" bind:checked={DEBUG} aria-label="DEBUG flag on/off" /> debug
-	{#if DEBUG}
-		<button onclick={subDivide}>Subdivide</button>
-		<button onclick={swap}>Swap</button>
-		<button onclick={doIt}>Do It</button>
-	{/if}
 
+	<button onclick={subDivide}>Subdivide</button>
+	<button onclick={swap}>Swap</button>
+	<button onclick={doIt}>Do It</button>
 </div>
 
