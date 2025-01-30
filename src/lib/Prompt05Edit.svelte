@@ -17,21 +17,22 @@
 
 	const HEIGHT = 1080;
 	const WIDTH = 1920;
-	const MARGIN = -550;// (Math.random() * 1000) - 700;
+	const MARGIN = -1500;// (Math.random() * 1000) - 700;
 	const STROKE_WIDTH = 2;
 
-	const MAX_HORIZONTAL_TILE_COUNT = 25; //Math.floor(Math.random() * 28 + 2);
-	const TILE_RATIO = 1; //Math.random() * 1.5 + .3;
+	const MAX_HORIZONTAL_TILE_COUNT = 13; //Math.floor(Math.random() * 28 + 2);
+	const TILE_RATIO = .5; //Math.random() * 1.5 + .3;
 	const TILE_WIDTH = (WIDTH - (2 * MARGIN)) / MAX_HORIZONTAL_TILE_COUNT;
 	const TILE_HEIGHT = TILE_WIDTH * TILE_RATIO;
 	const BASE_BUILDING_HEIGHT = 20;
 	const MAX_BUILDING_HEIGHT = 20;// + Math.random() * 250;
 	const MAX_WAVE_HEIGHT = 150;// + Math.random() * 50;
 
-	const COLOR_ANIMATION_DURATION = 15000;// + Math.random() * 15000;
+	const COLOR_ANIMATION_DURATION = 30000;// + Math.random() * 15000;
+	const COLOR_ANIMATION_RANGE = 360;
 
 	const HEIGHT_ANIMATION_DURATION = 30000;
-	const FREQUENCY = 0.1;//Math.random();
+	const FREQUENCY = 1/13;//Math.random();
 
 	let tiles: Tile[] = $state([]);
 	let colors = $state({
@@ -130,21 +131,20 @@
 	const HUE_HEAD = Math.random() * 360;
 	const HUE_LEFT = Math.random() * 360;
 	const HUE_RIGHT = Math.random() * 360;
-
+	
 	function animateHue(timestamp: number) {
 		if (!colorStartTime) colorStartTime = timestamp;
 		let elapsed = timestamp - colorStartTime;
 		if (recorderState.recording) {
-			// * 2.5 as we're usually drawing at 60+ fps
-			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+			elapsed = (recorderState.frame / (recorderState.fps)) * 1000;
 		}
 		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
 		const angle = progress * Math.PI * 2;
 
 		// Calculate HSL values for each side
-		const head = (Math.sin(angle) + 1) / 2;
-		const left = (Math.sin(angle + (Math.PI * 2 / 3)) + 1) / 2;
-		const right = (Math.sin(angle + (Math.PI * 4 / 3)) + 1) / 2;
+		const head = (Math.sin(angle) + 1) * COLOR_ANIMATION_RANGE;
+		const left = (Math.sin(angle + (Math.PI * 2 / 3)) + 1) * COLOR_ANIMATION_RANGE;
+		const right = (Math.sin(angle + (Math.PI * 4 / 3)) + 1) * COLOR_ANIMATION_RANGE;
 
 		colors = {
 			headColor: hslToHex(HUE_HEAD + head, 70, 60),
@@ -192,11 +192,10 @@
 		if (!colorStartTime) colorStartTime = timestamp;
 		let elapsed = timestamp - colorStartTime;
 		if (recorderState.recording) {
-			// * 2.5 as we're usually drawing at 60+ fps
-			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+			elapsed = (recorderState.frame / (recorderState.fps)) * 1000;
 		}
 		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
-
+		
 		// Calculate the position of the "light" (0 to 1)
 		const angle = progress * Math.PI * 2;
 
