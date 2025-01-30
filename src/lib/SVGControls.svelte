@@ -88,12 +88,14 @@
 			// Animation loop to capture SVG changes
 			function drawFrame() {
 				// Convert the current SVG state to a data URL
+				if (!svgElement) return;
 				const svgData = new XMLSerializer().serializeToString(svgElement);
 				const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
 				const url = URL.createObjectURL(svgBlob);
 
 				const img = new Image();
 				img.onload = () => {
+					if (!ctx) return;
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 					URL.revokeObjectURL(url);
@@ -150,6 +152,8 @@
 			return;
 		}
 
+		// Convert the current SVG state to a data URL
+		if (!svgElement) return;
 		const svgData = new XMLSerializer().serializeToString(svgElement);
 		const finalCanvas = document.createElement('canvas');
 		finalCanvas.width = svgElement.clientWidth;
@@ -165,7 +169,8 @@
 				console.warn('no CTX');
 				return;
 			}
-			ctx.drawImage(img, 0, 0, finalCanvas.width, finalCanvas.height);
+			ctx.drawImage(img, 0, 0);
+
 			// Create download link
 			const pngUrl = finalCanvas.toDataURL('image/png');
 			const link = document.createElement('a');
@@ -180,8 +185,8 @@
 	}
 
 	// ffmpeg stuff
-	let ffmpeg;
-	let frames = [];
+	let ffmpeg: FFmpeg;
+	let frames: any[] = [];
 
 	// Cleanup on component unmount
 	$effect(() => {
@@ -243,6 +248,7 @@
 		}
 
 		// Convert SVG to canvas
+		if (!svgElement) return;
 		const svgData = new XMLSerializer().serializeToString(svgElement);
 		const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
 		const svgUrl = URL.createObjectURL(svgBlob);
@@ -252,6 +258,10 @@
 		frameCanvas.width = recorderState.width;
 		frameCanvas.height = recorderState.height;
 		const ctx = frameCanvas.getContext('2d');
+		if (!ctx) {
+			console.error('Failed to get 2D context from canvas');
+			return;
+		}
 
 		const img = new Image();
 		img.onload = () => {
