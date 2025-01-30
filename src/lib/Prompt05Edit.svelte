@@ -17,21 +17,21 @@
 
 	const HEIGHT = 1080;
 	const WIDTH = 1920;
-	const MARGIN = -100;// (Math.random() * 1000) - 700;
+	const MARGIN = -550;// (Math.random() * 1000) - 700;
 	const STROKE_WIDTH = 2;
 
-	const MAX_HORIZONTAL_TILE_COUNT = 10; //Math.floor(Math.random() * 28 + 2);
+	const MAX_HORIZONTAL_TILE_COUNT = 25; //Math.floor(Math.random() * 28 + 2);
 	const TILE_RATIO = 1; //Math.random() * 1.5 + .3;
 	const TILE_WIDTH = (WIDTH - (2 * MARGIN)) / MAX_HORIZONTAL_TILE_COUNT;
 	const TILE_HEIGHT = TILE_WIDTH * TILE_RATIO;
 	const BASE_BUILDING_HEIGHT = 20;
 	const MAX_BUILDING_HEIGHT = 20;// + Math.random() * 250;
-	const MAX_WAVE_HEIGHT = 50;// + Math.random() * 50;
+	const MAX_WAVE_HEIGHT = 150;// + Math.random() * 50;
 
-	const COLOR_ANIMATION_DURATION = 25000;// + Math.random() * 15000;
+	const COLOR_ANIMATION_DURATION = 15000;// + Math.random() * 15000;
 
 	const HEIGHT_ANIMATION_DURATION = 30000;
-	const FREQUENCY = .5;//Math.random();
+	const FREQUENCY = 0.1;//Math.random();
 
 	let tiles: Tile[] = $state([]);
 	let colors = $state({
