@@ -249,14 +249,12 @@
 
 		// Create a canvas element
 		const frameCanvas = document.createElement('canvas');
-		frameCanvas.width = 1080;//svgRect.width;
-		frameCanvas.height = 1080;//svgRect.height;
+		frameCanvas.width = recorderState.width;
+		frameCanvas.height = recorderState.height;
 		const ctx = frameCanvas.getContext('2d');
 
 		const img = new Image();
 		img.onload = () => {
-			frameCanvas.width = img.width;
-			frameCanvas.height = img.height;
 			// const ctx = frameCanvas.getContext('2d');
 			ctx.drawImage(img, 0, 0);
 

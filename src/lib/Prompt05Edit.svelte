@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SVGContainer from '$lib/SVGContainer.svelte';
+	import { recorderState } from './ffmpegRecorder.svelte';
 
 	const { svgId } = $props();
 
@@ -14,8 +15,8 @@
 		height: number;
 	};
 
-	const HEIGHT = 720;
-	const WIDTH = 1280;
+	const HEIGHT = 1080;
+	const WIDTH = 1920;
 	const MARGIN = -100;// (Math.random() * 1000) - 700;
 	const STROKE_WIDTH = 2;
 
@@ -52,6 +53,9 @@
 	}
 
 	$effect(() => {
+		recorderState.width = WIDTH;
+		recorderState.height = HEIGHT;
+
 		const rows = (MAX_HORIZONTAL_TILE_COUNT * 2) - 1;
 		let rowX = WIDTH / 2 - TILE_WIDTH / 2;
 		// (total height - grid height) / 2
@@ -129,7 +133,11 @@
 
 	function animateHue(timestamp: number) {
 		if (!colorStartTime) colorStartTime = timestamp;
-		const elapsed = timestamp - colorStartTime;
+		let elapsed = timestamp - colorStartTime;
+		if (recorderState.recording) {
+			// * 2.5 as we're usually drawing at 60+ fps
+			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+		}
 		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
 		const angle = progress * Math.PI * 2;
 
@@ -182,7 +190,11 @@
 
 	function animateGray(timestamp: number) {
 		if (!colorStartTime) colorStartTime = timestamp;
-		const elapsed = timestamp - colorStartTime;
+		let elapsed = timestamp - colorStartTime;
+		if (recorderState.recording) {
+			// * 2.5 as we're usually drawing at 60+ fps
+			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+		}
 		const progress = (elapsed % COLOR_ANIMATION_DURATION) / COLOR_ANIMATION_DURATION;
 
 		// Calculate the position of the "light" (0 to 1)
