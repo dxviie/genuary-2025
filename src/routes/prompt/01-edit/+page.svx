@@ -1,0 +1,17 @@
+---
+	layout: edit
+---
+
+<script>
+	import Prompt01Edit from '$lib/Prompt01Edit.svelte';
+	import SVGControls from '$lib/SVGControls.svelte';
+	const svgId = "prompt-01-edit-svg";
+</script>
+
+# Vertical or horizontal lines only
+
+<Prompt01Edit {svgId} />
+
+###
+
+<SVGControls {svgId} />
