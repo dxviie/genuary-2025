@@ -1,27 +1,54 @@
 <script lang="ts">
 	import SVGContainer from '$lib/SVGContainer.svelte';
+	import { recorderState } from './ffmpegRecorder.svelte';
 
 	const { svgId } = $props();
 
-	const HEIGHT = 1080;
-	const WIDTH = 1920;
-	const ZERO = performance.now();
-
 	type TransformFunction = (time: DOMHighResTimeStamp) => number;
 	type Line = { x1: number; y1: number; x2: number; y2: number; width: number; };
-	type Mask = { id: string; cx: number; cy: number; r: number; type: 'circle' | 'rect' | string };
+	type Mask = { id: string; cx: number; cy: number; r: number; type: 'circle' | 'rect' | string; rHeight: number; };
 	type LineGroup = {
 		index: number;
 		mask: Mask;
 		lines: Line[];
 		fx: TransformFunction;
 		fy: TransformFunction;
+		rotation: number;
 	};
 
-	let styles = $state(['']);
-	const R = 250;
+	const HEIGHT = 1080;
+	const WIDTH = 1920;
+	const INVERT = true;
+	const R = Math.min(HEIGHT, WIDTH) * .7;
+
 	let animationFrame = -1;
-	const LINE_GROUPS = $state(generateLineGroups());
+	let styles = $state(['']);
+	let lineGroups = $state<LineGroup[]>([]);
+
+	function getPingelingGroup(index: number): LineGroup {
+		const left = index % 2 === 0;
+		const horizontal = Math.random() > 0.5;
+		const maskWidth = 500 * Math.random() + 50;
+		const maskRatio = .5 + Math.random();
+		return {
+				index: index,
+				mask: createMask(`mask-${index}`, left ? WIDTH/2 - HEIGHT *.8 : WIDTH/2 + HEIGHT/2, HEIGHT/2, maskWidth, 'rect', maskRatio),
+				lines: generateLines(horizontal, 200 * Math.random() + 50, 150 * Math.random() + 10, horizontal ? -HEIGHT*3 : -WIDTH*3, horizontal ? HEIGHT*3 : WIDTH*3),
+				fx: createAnimationFunction(Math.sin, 5000 + Math.random() * 2500, 100, Math.random() * 360),
+				fy: createAnimationFunction(Math.cos, 1000 + Math.random() * 2500, HEIGHT/2 + maskWidth/2, Math.random() * 360),
+				rotation: 1
+			};
+	}
+
+
+	function generateFDMNGroups(): LineGroup[] {
+		const groups: LineGroup[] = [];
+		for (let i = 0; i < 10; i++) {
+			groups.push(getPingelingGroup(i));
+		}
+
+		return groups;
+	}
 
 	function generateLineGroups() {
 		const minWidth = 0.5;
@@ -44,10 +71,11 @@
 			const r = Math.random() * R / 2 + R / 2;
 			groups.push({
 				index: groups.length,
-				mask: createMask(`mask-${groups.length}`, maskCx, maskCy, r),
+				mask: createMask(`mask-${groups.length}`, maskCx, maskCy, r, Math.random() > 0.8 ? 'circle' : 'rect' ),
 				lines: generateLines(horizontal, currentSpacing, currentWidth, start),
 				fx: createAnimationFunction(Math.sin, timeRatio * phase, 250, phase),
-				fy: createAnimationFunction(Math.cos, timeRatio, 5, phase)
+				fy: createAnimationFunction(Math.cos, timeRatio, 5, phase),
+				rotation: 0
 			});
 			availableSpace -= currentWidth;
 			start += currentWidth;
@@ -78,8 +106,8 @@
 		return lines;
 	}
 
-	function createMask(id: string, cx: number, cy: number, r: number) {
-		return { id, cx, cy, r, type: Math.random() > 0.8 ? 'circle' : 'rect' };
+	function createMask(id: string, cx: number, cy: number, r: number, type: 'circle' | 'rect' = 'rect', rHeight = 1) {
+		return { id, cx, cy, r, type, rHeight };
 	}
 
 	function createAnimationFunction(f = Math.sin, timeRatio = 1000, amplitude = R, phase = 0) {
@@ -97,17 +125,25 @@
 	let frame = $state(0);
 
 	function animate() {
-		const now = performance.now();
-		const elapsed = frame * frameMillis;//now - ZERO;
-		for (let i = 0; i < LINE_GROUPS.length; i++) {
-			styles[i] = createTransform(elapsed, LINE_GROUPS[i].fx, LINE_GROUPS[i].fy);
+		let elapsed = frame * frameMillis;
+		if (recorderState.recording) {
+			elapsed = (recorderState.frame / (recorderState.fps)) * 1000;
 		}
-		frame++;
+		for (let i = 0; i < lineGroups.length; i++) {
+			styles[i] = createTransform(elapsed, lineGroups[i].fx, lineGroups[i].fy);
+		}
+		setTimeout(()=> frame++,0);
 		animationFrame = requestAnimationFrame(animate);
 	}
 
 	$effect(() => {
 		console.debug('Prompt01 mounted', svgId);
+		recorderState.width = WIDTH;
+		recorderState.height = HEIGHT;
+
+		lineGroups = generateFDMNGroups();
+
+
 		animationFrame = requestAnimationFrame(animate);
 		return () => {
 			console.debug('Prompt01 unmounted', svgId);
@@ -128,10 +164,10 @@
 		height={`${HEIGHT}`}
 	>
 		<defs>
-			{#each LINE_GROUPS as group}
+			{#each lineGroups as group}
 				<mask id={group.mask.id}>
 					{#if group.mask.type === 'rect'}
-						<rect height={group.mask.r * 2} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r}
+						<rect height={group.mask.r * 2 * group.mask.rHeight} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r * group.mask.rHeight}
 									fill="#FFF" style={styles[group.index]} />
 					{:else}
 						<circle cx={group.mask.cx} cy={group.mask.cy} r={group.mask.r} fill="#FFF" style={styles[group.index]} />
@@ -140,13 +176,13 @@
 			{/each}
 		</defs>
 
-		<rect id="background-rect" x="0" y="0" width={WIDTH} height={HEIGHT} fill="#FFF" />
+		<rect id="background-rect" x="0" y="0" width={WIDTH} height={HEIGHT} fill={INVERT ? '#000' : '#FFF'} />
 
-		{#each LINE_GROUPS as group}
+		{#each lineGroups as group}
 			<g mask="url(#{group.mask.id})">
-				<g transform="rotate({frame * 0.5} {group.mask.cx} {group.mask.cy})">
+				<g transform="rotate({frame * group.rotation} {WIDTH / 2} {HEIGHT / 2})">
 					{#each group.lines as line}
-						<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="black" stroke-width={line.width} />
+						<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={INVERT ? 'white' : 'black'} stroke-width={line.width} />
 					{/each}
 				</g>
 			</g>
