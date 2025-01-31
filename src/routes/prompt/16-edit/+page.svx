@@ -1,0 +1,17 @@
+---
+	layout: edit
+---
+
+<script>
+	import Prompt16Edit from '$lib/Prompt16Edit.svelte';
+	import SVGControls from '$lib/SVGControls.svelte';
+	const svgId = "prompt-16-edit-svg";
+</script>
+
+# Generative palette
+
+<Prompt16Edit {svgId} />
+
+###
+
+<SVGControls {svgId} />

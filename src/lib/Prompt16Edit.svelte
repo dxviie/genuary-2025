@@ -61,8 +61,10 @@
 				Math.cos(elapsed * fx * 0.5), -2, 2, 0, HEIGHT);
 		}
 	];
-	const WIDTH = 1080;
-	const HEIGHT = 1080;
+
+	const WIDTH = 1280;
+	const HEIGHT = 720;
+
 	// pigment colors from mixbox documentation
 	const PIGMENT_COLORS = [
 		'rgb(254, 236, 0)',   // Cadmium Yellow
@@ -83,7 +85,8 @@
 	type Tile = {
 		x: number;
 		y: number;
-		size: number;
+		width: number;
+		height: number;
 		index: number;
 		color: string;
 		closeness?: number[];
@@ -100,7 +103,7 @@
 	}
 
 	let DEBUG = $state(false);
-	const timeFactor = 2000 + Math.random() * 5000;
+	const TIME_FACTOR = 2000 + Math.random() * 5000;
 	let colors: ColorSource[] = $state([]);
 	let tiles: Tile[] = $state([]);
 	// Generate random offsets for each color at startup
@@ -110,6 +113,8 @@
 
 	$effect(() => {
 		setTimeout(() => {
+			recorderState.width = WIDTH;
+			recorderState.height = HEIGHT;
 			colors = generateColorSources(Math.floor(Math.random() * 5) + 2);
 			offsets = colors.map(() => ({
 				phase: Math.random() * Math.PI * 2,
@@ -126,14 +131,16 @@
 
 	function buildTiles(dimension: number): Tile[] {
 		const tiles: Tile[] = [];
-		const size = WIDTH / dimension;
+		const width = WIDTH / dimension;
+		const verticalTileCount = Math.ceil(HEIGHT / width);
+		const height = HEIGHT / verticalTileCount;	
 		for (let i = 0; i < dimension; i++) {
 			for (let j = 0; j < dimension; j++) {
-				const x = i * size;
-				const y = j * size;
+				const x = i * width;
+				const y = j * height;
 				const index = i * dimension + j;
 				const color = '#000';
-				tiles.push({ x, y, size, index, color });
+				tiles.push({ x, y, width, height, index, color });
 			}
 		}
 		return tiles;
@@ -164,9 +171,9 @@
 
 	// return 0 to 1, 0 is farthest away (= WIDTH) and 1 is closest (= 0)
 	function getClosenessFactor(tile: Tile, source: ColorSource): number {
-		const dx = tile.x + (tile.size / 2) - source.x;
-		const dy = tile.y + (tile.size / 2) - source.y;
-		const distance = Math.sqrt(dx * dx + dy * dy) - (tile.size / 2);
+		const dx = tile.x + (tile.width / 2) - source.x;
+		const dy = tile.y + (tile.width / 2) - source.y;
+		const distance = Math.sqrt(dx * dx + dy * dy) - (tile.width / 2);
 		// if (distance > source.radius) return 0.05;
 		return Math.max(0.001, 1 - distance / source.radius);//(source.radius * source.radius);
 	}
@@ -175,10 +182,10 @@
 
 	function animate(timestamp: number) {
 		if (!startTime) startTime = timestamp;
-		let elapsed = (timestamp - startTime) / timeFactor;
+		let elapsed = (timestamp - startTime) / TIME_FACTOR;
 		if (recorderState.recording) {
 			// * 2.5 as we're usually drawing at 60+ fps
-			elapsed = (recorderState.frame / (recorderState.fps * 2.5));
+			elapsed = (recorderState.frame / (recorderState.fps)) * .2;
 		}
 		osc = remap(Math.sin(elapsed), -1, 1, 0.8, .95);
 		const newTiles = [];
@@ -206,6 +213,7 @@
 			color.animationFunction(elapsed, color.index);
 		}
 		tiles = newTiles;
+		
 		animationId = requestAnimationFrame(animate);
 	}
 
@@ -278,8 +286,8 @@
 
 		{#each tiles as tile}
 
-			<rect x={tile.x} y={tile.y} width={tile.size} height={tile.size} fill={tile.color} stroke={tile.color} stroke-width="2"
-						stroke-opacity="0.5"
+			<rect x={tile.x} y={tile.y} width={tile.width} height={tile.width} fill={tile.color} stroke={tile.color} stroke-width="2"
+						stroke-opacity="1"
 			/>
 		{/each}
 		{#each tiles as tile}
@@ -294,11 +302,11 @@
 		{/each}
 
 		{#if !DEBUG}
-			{#each colors as color, i}
+			<!-- {#each colors as color, i}
 				<rect x={10} y={10 + i * 20} width="20" height="20" fill={color.color} stroke-width="2" stroke="#fff" />
 			{/each}
 			<text x={12} y={15 + (colors.length + 1) * 20} fill="#FFF" stroke-width="2"
-						font-weight="bold">{Math.round(remap(100 - (osc * 100), 5, 20, 0, 99))}</text>
+						font-weight="bold">{Math.round(remap(100 - (osc * 100), 5, 20, 0, 99))}</text> -->
 		{:else}
 			{#each colors as color}
 				<circle cx={color.x} cy={color.y} r={color.radius} fill="none" stroke="#fff" />

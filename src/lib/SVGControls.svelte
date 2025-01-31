@@ -257,19 +257,27 @@
 		const frameCanvas = document.createElement('canvas');
 		frameCanvas.width = recorderState.width;
 		frameCanvas.height = recorderState.height;
-		const ctx = frameCanvas.getContext('2d');
+		const ctx = frameCanvas.getContext('2d', {
+			alpha: false,
+			willReadFrequently: true
+		});
 		if (!ctx) {
 			console.error('Failed to get 2D context from canvas');
 			return;
 		}
 
+		// Set image rendering quality
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
+
 		const img = new Image();
 		img.onload = () => {
-			// const ctx = frameCanvas.getContext('2d');
+			// Clear the canvas before drawing
+			ctx.clearRect(0, 0, frameCanvas.width, frameCanvas.height);
 			ctx.drawImage(img, 0, 0);
 
-			// Store frame
-			frames.push(frameCanvas.toDataURL('image/png'));
+			// Store frame with maximum quality
+			frames.push(frameCanvas.toDataURL('image/png', 1.0));
 			recorderState.frame += 1;
 			if (recorderState.frame >= recorderState.fps * recorderState.maxSeconds) {
 				stopRecordingFfmpeg();
@@ -304,8 +312,12 @@
 			'-pattern_type', 'glob',
 			'-i', 'frame*.png',
 			'-c:v', 'libx264',
+			'-preset', 'slow', // Slower preset = better compression
 			'-pix_fmt', 'yuv420p',
-			'-crf', '23',
+			'-crf', '17', // Lower CRF = higher quality (range 0-51, 17-18 is visually lossless)
+			'-movflags', '+faststart', // Enables streaming playback
+			'-profile:v', 'high', // Use high profile for better quality
+			'-tune', 'animation', // Optimize for animated content
 			'output.mp4'
 		]);
 		console.log('========== Video generated');
