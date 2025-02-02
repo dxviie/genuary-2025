@@ -120,20 +120,22 @@
 		return `transform: translate(${cx}px, ${cy}px)`;
 	}
 
-	const FPS = 30;
-	const frameMillis = 1000 / FPS;
 	let frame = $state(0);
 
 	function animate() {
+		const frameMillis = 1000 / recorderState.fps;
 		let elapsed = frame * frameMillis;
 		if (recorderState.recording) {
 			elapsed = (recorderState.frame / (recorderState.fps)) * 1000;
+			console.debug('Recording frame', recorderState.frame, elapsed);
 		}
-		for (let i = 0; i < lineGroups.length; i++) {
-			styles[i] = createTransform(elapsed, lineGroups[i].fx, lineGroups[i].fy);
-		}
-		setTimeout(()=> frame++,0);
-		animationFrame = requestAnimationFrame(animate);
+		setTimeout(()=> {
+			for (let i = 0; i < lineGroups.length; i++) {
+				styles[i] = createTransform(elapsed, lineGroups[i].fx, lineGroups[i].fy);
+			}
+			frame++;
+			animationFrame = requestAnimationFrame(animate);
+		}, 0);
 	}
 
 	$effect(() => {
@@ -187,5 +189,7 @@
 				</g>
 			</g>
 		{/each}
+
+		<circle cx={WIDTH / 2} cy={HEIGHT / 2} r={Math.min(WIDTH, HEIGHT) * .375} fill={INVERT ? '#000' : '#FFF'} stroke={INVERT ? '#000' : '#FFF'} stroke-width="33" />
 	</svg>
 </SVGContainer>

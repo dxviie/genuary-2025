@@ -156,8 +156,8 @@
 		if (!svgElement) return;
 		const svgData = new XMLSerializer().serializeToString(svgElement);
 		const finalCanvas = document.createElement('canvas');
-		finalCanvas.width = svgElement.clientWidth;
-		finalCanvas.height = svgElement.clientHeight;
+		finalCanvas.width = recorderState.width
+		finalCanvas.height = recorderState.height;
 		const ctx = finalCanvas.getContext('2d');
 		// First draw the SVG
 		const img = new Image();
