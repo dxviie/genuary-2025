@@ -4,5 +4,5 @@ export const recorderState = $state({
 	fps: 30,
 	width: 1080,
 	height: 1080,
-	maxSeconds: 11
+	maxSeconds: 30
 });

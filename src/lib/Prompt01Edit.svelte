@@ -25,6 +25,8 @@
 	let styles = $state(['']);
 	let lineGroups = $state<LineGroup[]>([]);
 
+	let totalY = 11+99; // line translation
+
 	function getPingelingGroup(index: number): LineGroup {
 		const left = index % 2 === 0;
 		const horizontal = Math.random() > 0.5;
@@ -43,9 +45,18 @@
 
 	function generateFDMNGroups(): LineGroup[] {
 		const groups: LineGroup[] = [];
-		for (let i = 0; i < 10; i++) {
-			groups.push(getPingelingGroup(i));
-		}
+		// for (let i = 0; i < 10; i++) {
+		// 	groups.push(getPingelingGroup(i));
+		// }
+
+		groups.push({
+			index: 0,
+			mask: createMask(`mask-0`, WIDTH/2, HEIGHT + 450, 1960, 'rect', .5),
+			lines: generateLines(true, 11, 99, -HEIGHT*3, HEIGHT*3),
+			fx: createAnimationFunction(Math.sin, 5000, 0),
+			fy: createAnimationFunction(Math.cos, 9000, HEIGHT/2),
+			rotation: 0
+		});
 
 		return groups;
 	}
@@ -121,6 +132,7 @@
 	}
 
 	let frame = $state(0);
+	let transY = $state(0);
 
 	function animate() {
 		const frameMillis = 1000 / recorderState.fps;
@@ -135,6 +147,7 @@
 			}
 			frame++;
 			animationFrame = requestAnimationFrame(animate);
+			transY = (transY + 1) % totalY;
 		}, 0);
 	}
 
@@ -142,6 +155,7 @@
 		console.debug('Prompt01 mounted', svgId);
 		recorderState.width = WIDTH;
 		recorderState.height = HEIGHT;
+		recorderState.maxSeconds = 35;
 
 		lineGroups = generateFDMNGroups();
 
@@ -168,12 +182,16 @@
 		<defs>
 			{#each lineGroups as group}
 				<mask id={group.mask.id}>
+
+					<g transform="rotate(-26) translate(0, 500)">
 					{#if group.mask.type === 'rect'}
 						<rect height={group.mask.r * 2 * group.mask.rHeight} width={group.mask.r * 2} x={group.mask.cx - group.mask.r} y={group.mask.cy - group.mask.r * group.mask.rHeight}
 									fill="#FFF" style={styles[group.index]} />
 					{:else}
 						<circle cx={group.mask.cx} cy={group.mask.cy} r={group.mask.r} fill="#FFF" style={styles[group.index]} />
 					{/if}
+					</g>
+
 				</mask>
 			{/each}
 		</defs>
@@ -184,7 +202,7 @@
 			<g mask="url(#{group.mask.id})">
 				<g transform="rotate({frame * group.rotation} {WIDTH / 2} {HEIGHT / 2})">
 					{#each group.lines as line}
-						<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={INVERT ? 'white' : 'black'} stroke-width={line.width} />
+						<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={INVERT ? 'white' : 'black'} stroke-width={line.width} transform={`translate(0,${transY})`}/>
 					{/each}
 				</g>
 			</g>

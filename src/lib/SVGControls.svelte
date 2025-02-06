@@ -307,6 +307,7 @@
 		console.log('========== All frames written');
 
 		// Generate video from frames
+		/*
 		await ffmpeg.exec([
 			'-framerate', `${recorderState.fps}`,
 			'-pattern_type', 'glob',
@@ -318,6 +319,25 @@
 			'-movflags', '+faststart', // Enables streaming playback
 			'-profile:v', 'high', // Use high profile for better quality
 			'-tune', 'animation', // Optimize for animated content
+			'output.mp4'
+		]);
+
+		 */
+
+		/* VJ Friendly config */
+		await ffmpeg.exec([
+			'-framerate', `${recorderState.fps}`,
+			'-pattern_type', 'glob',
+			'-i', 'frame*.png',
+			'-c:v', 'libx264',
+			'-preset', 'ultrafast', // Prioritize decode speed over compression
+			'-pix_fmt', 'yuv420p',
+			'-crf', '15', // Higher quality than before
+			'-movflags', '+faststart',
+			'-profile:v', 'high',
+			'-tune', 'zerolatency', // Optimize for real-time playback
+			'-x264opts', 'keyint=1', // Every frame is a keyframe (better scrubbing)
+			'-force_key_frames', 'expr:gte(t,n_forced*1)', // Force keyframes every second
 			'output.mp4'
 		]);
 		console.log('========== Video generated');
