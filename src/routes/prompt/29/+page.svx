@@ -8,7 +8,7 @@
 	const svgId = "prompt-29-svg";
 </script>
 
-# Grid-based graphic design (WIP)
+# Grid-based graphic design
 
 <Prompt29 {svgId} />
 

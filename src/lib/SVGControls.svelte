@@ -186,7 +186,7 @@
 
 	// ffmpeg stuff
 	let ffmpeg: FFmpeg;
-	let frames: any[] = [];
+	let ffmpegFrames: any[] = $state([]);
 
 	// Cleanup on component unmount
 	$effect(() => {
@@ -227,7 +227,7 @@
 	}
 
 	async function startRecordingFfmpeg() {
-		frames = [];
+		ffmpegFrames.splice(0);
 		recorderState.recording = true;
 		recorderState.frame = 0;
 		recordFrame();
@@ -277,7 +277,7 @@
 			ctx.drawImage(img, 0, 0);
 
 			// Store frame with maximum quality
-			frames.push(frameCanvas.toDataURL('image/png', 1.0));
+			ffmpegFrames.push(frameCanvas.toDataURL('image/png', 1.0));
 			recorderState.frame += 1;
 			if (recorderState.frame >= recorderState.fps * recorderState.maxSeconds) {
 				stopRecordingFfmpeg();
@@ -295,8 +295,8 @@
 
 	async function generateVideo() {
 		// Write frames to FFmpeg
-		for (let i = 0; i < frames.length; i++) {
-			const base64Data = frames[i].split(',')[1];
+		for (let i = 0; i < ffmpegFrames.length; i++) {
+			const base64Data = ffmpegFrames[i].split(',')[1];
 			const binaryData = atob(base64Data);
 			const data = new Uint8Array(binaryData.length);
 			for (let j = 0; j < binaryData.length; j++) {
@@ -357,7 +357,7 @@
 
 		// Cleanup
 		URL.revokeObjectURL(url);
-		frames = [];
+		ffmpegFrames.splice(0);
 	}
 </script>
 

@@ -16,6 +16,11 @@
 	{file: '/16/16b.png', alt: 'Prompt 16: green'},
 	{file: '/16/16c.png', alt: 'Prompt 16: debug'},
 	];
+	const images29 = [
+	{file: '/29/01.png', alt: 'Prompt 29: grid-based graphic design'},
+	{file: '/29/02.png', alt: 'Prompt 29: grid-based graphic design'},
+	{file: '/29/03.png', alt: 'Prompt 29: grid-based graphic design'},
+	];
 </script>
 
 **01 Vertical or horizontal lines only** <small>- (credit: [Stranger in the Q](https://x.com/stranger_intheq))</small>
@@ -44,14 +49,16 @@
 
 **29 Grid-based graphic design** <small>- (credit: [Melissa Wiederrecht](https://melissawiederrecht.com/))</small>
 
-[View Sketch (WIP)](/prompt/29)
+<ImageDisplay images={images29} />
+
+[View Sketch](/prompt/29)
 
 ------
 
 #### Prompts I plan to do:
 
-- 10: You can only use TAU in your code, no other number allowed.(TAU = 2 * pi = 6.2831853…)
+But didn't get around to, because... life.
 
-- 21: Create a collision detection system (no libraries allowed).
+- ~~10: You can only use TAU in your code, no other number allowed.(TAU = 2 * pi = 6.2831853…)~~
 
-- 29: Grid-based graphic design.
+- ~~21: Create a collision detection system (no libraries allowed).~~

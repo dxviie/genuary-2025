@@ -1,8 +1,10 @@
 <script lang="ts">
 	import SVGContainer from '$lib/SVGContainer.svelte';
+	import { recorderState } from '$lib/ffmpegRecorder.svelte';
 
 	const { svgId } = $props();
 	let DEBUG = $state(false);
+	let PLAY = $state(true);
 
 	const WIDTH = 1080;
 	const HEIGHT = 1080;
@@ -89,9 +91,11 @@
 		}
 
 		// Convert points to SVG path string
-		return `M ${path[0].x} ${path[0].y} ` +
+		const pathD = `M ${path[0].x} ${path[0].y} ` +
 			path.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ') +
 			' Z';
+
+		return roundAndInsetPath(tiles, pathD, 10 + Math.random() * 20, 10 + Math.random() * 20);
 	}
 
 	function arePointsEqual(p1: Point, p2: Point): boolean {
@@ -320,33 +324,208 @@
 		}
 	}
 
+	export function roundAndInsetPath(
+		pathTiles: Tile[],
+		pathData: string,
+		radius = 20,
+		inset = 0
+	): string {
+		// Parse the path into points
+		const points = pathData
+			.split(/(?=[MLZ])/g)
+			.filter((cmd) => cmd.trim())
+			.map((cmd) => {
+				const parts = cmd.trim().split(/\s+/);
+				if (parts[0] === 'Z') return null;
+				return {
+					x: parseFloat(parts[1]),
+					y: parseFloat(parts[2])
+				};
+			})
+			.filter((p) => p !== null);
+
+		// Close the path by adding the first point at the end if needed
+		if (points[0].x !== points[points.length - 1].x || points[0].y !== points[points.length - 1].y) {
+			points.push({ ...points[0] });
+		}
+		// console.debug('extracted points', points);
+
+		// Apply inset if specified
+		if (inset > 0) {
+			const len = points.length - 1; // -1 because last point is same as first
+			const newPoints = points.map((_, i) => ({ ...points[i] })); // Create a copy to avoid modifying while iterating
+
+			for (let i = 0; i < len; i++) {
+				const prev = points[(i - 1 + len) % len];
+				const current = points[i];
+				const next = points[(i + 1) % len];
+
+				// Calculate vectors to previous and next points
+				const toPrev = { x: prev.x - current.x, y: prev.y - current.y };
+				const toNext = { x: next.x - current.x, y: next.y - current.y };
+
+				// Normalize vectors
+				const toPrevLen = Math.hypot(toPrev.x, toPrev.y);
+				const toNextLen = Math.hypot(toNext.x, toNext.y);
+
+				if (toPrevLen === 0 || toNextLen === 0) continue;
+
+				toPrev.x /= toPrevLen;
+				toPrev.y /= toPrevLen;
+				toNext.x /= toNextLen;
+				toNext.y /= toNextLen;
+
+				// Calculate normal vector (average of normals from both segments)
+				const normal = {
+					x: (toPrev.x + toNext.x) / 2,
+					y: (toPrev.y + toNext.y) / 2
+				};
+
+				if (normal.x === 0 && normal.y === 0) {
+					if (prev.x === current.x && next.x === current.x) {
+						normal.x = -1;
+						normal.y = 0;
+					} else if (prev.y === current.y && next.y === current.y) {
+						normal.x = 0;
+						normal.y = -1;
+					}
+				}
+				// console.debug('toPrev', toPrev, 'toNext', toNext, 'normal', normal);
+				// Normalize the normal vector
+				const normalLen = Math.hypot(normal.x, normal.y);
+				if (normalLen > 0) {
+					normal.x /= normalLen;
+					normal.y /= normalLen;
+
+					const newX = normal.x * inset;
+					const newY = normal.y * inset;
+					// check if new point is inside any of the tiles
+					const insideTile = pathTiles.some((tile) => {
+						return (
+							current.x + newX >= tile.x &&
+							current.x + newX <= tile.x + tile.width &&
+							current.y + newY >= tile.y &&
+							current.y + newY <= tile.y + tile.height
+						);
+					});
+					if (!insideTile) {
+						normal.x *= -1;
+						normal.y *= -1;
+					}
+
+					// Apply inset along the normal direction
+					newPoints[i].x += normal.x * inset;
+					newPoints[i].y += normal.y * inset;
+				}
+			}
+
+			// Update the last point to match the first point
+			newPoints[len] = { ...newPoints[0] };
+
+			// Replace the original points with the inset points
+			points.length = 0;
+			points.push(...newPoints);
+		}
+
+		// Generate rounded path
+		let path = '';
+		const len = points.length - 1; // -1 because last point is same as first
+
+		for (let i = 0; i < len; i++) {
+			const current = points[i];
+			const next = points[(i + 1) % len];
+			const prev = points[(i - 1 + len) % len];
+
+			// Calculate direction vectors
+			const toPrev = { x: prev.x - current.x, y: prev.y - current.y };
+			const toNext = { x: next.x - current.x, y: next.y - current.y };
+
+			// Normalize vectors
+			const toPrevLen = Math.hypot(toPrev.x, toPrev.y);
+			const toNextLen = Math.hypot(toNext.x, toNext.y);
+
+			if (toPrevLen === 0 || toNextLen === 0) continue;
+
+			toPrev.x /= toPrevLen;
+			toPrev.y /= toPrevLen;
+			toNext.x /= toNextLen;
+			toNext.y /= toNextLen;
+
+			// Calculate corner radius for this point
+			const actualRadius = Math.min(radius, toPrevLen / 2, toNextLen / 2);
+
+			// Calculate control points
+			const cp1 = {
+				x: current.x + toPrev.x * actualRadius,
+				y: current.y + toPrev.y * actualRadius
+			};
+
+			const cp2 = {
+				x: current.x + toNext.x * actualRadius,
+				y: current.y + toNext.y * actualRadius
+			};
+
+			// Start path if first point
+			if (i === 0) {
+				path += `M ${cp1.x} ${cp1.y}`;
+			}
+
+			// Add the rounded corner
+			path += ` L ${cp1.x} ${cp1.y} Q ${current.x} ${current.y} ${cp2.x} ${cp2.y}`;
+		}
+
+		return path + ' Z';
+	}
+
 	$inspect(shapes);
+
+	let animationId: number;
+	let lastFrameTimestamp = 0;
+	const FPS = 3;
+	const maxFrameCount = 30;
+	let frameCount = $state(0);
+
+	function animate() {
+		const now = performance.now();
+		if ((recorderState.recording || PLAY) && frameCount < maxFrameCount && (!lastFrameTimestamp || (now - lastFrameTimestamp) > (1000 / FPS))) {
+			setTimeout(() => frameCount++, 0);
+			if (Math.random() > 0.5) {
+				subDivide();
+			} else {
+				swap();
+			}
+			lastFrameTimestamp = now;
+		}
+		animationId = requestAnimationFrame(animate);
+	}
 
 	$effect(() => {
 		console.debug('Prompt29 mounted', svgId);
-		setTimeout(() => {
-			doIt();
-			// subDivide();
-			// subDivide();
-			// subDivide();
-		}, 0);
+		recorderState.maxSeconds = 13;
+		animationId = requestAnimationFrame(animate);
 		return () => {
 			console.debug('Prompt29 unmounted', svgId);
+			if (animationId > 0) {
+				cancelAnimationFrame(animationId);
+			}
 		};
 	});
+
+	const bg = Math.random() > 0.5 ? '#000' : '#FFF';
 </script>
 
 <SVGContainer>
 	<svg
 		role="graphics-object"
 		id={svgId}
-		viewBox="0 0 {WIDTH} {HEIGHT}"
+		viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
 		xmlns="http://www.w3.org/2000/svg"
-		width={`${WIDTH}`}
-		height={`${HEIGHT}`}
+		width={WIDTH}
+		height={HEIGHT}
 	>
+		<rect x="0" y="0" width={WIDTH} height={HEIGHT} fill={bg} />
 		{#each shapes as shape}
-			<path d={shape.d} fill={shape.color} opacity=".5" stroke="#000" stroke-width="20" />
+			<path d={shape.d} fill={shape.color} opacity=".5" stroke={bg} stroke-width="10" />
 			{#if DEBUG}
 				{#if shape.tiles && shape.tiles.length > 0}
 					<text x={shape.tiles[0].x + shape.tiles[0].width/3} y={shape.tiles[0].y + shape.tiles[0].height / 2} fill="#000"
@@ -367,10 +546,12 @@
 				{/each}
 			{/if}
 		{/each}
+<!--		<text x="50" y="70" fill="#FFF" stroke="#FFF" stroke-width="2" font-size="20">{`${frameCount}/${maxFrameCount}`}</text>-->
 	</svg>
 </SVGContainer>
 <hr />
 <div>
+	<input type="checkbox" bind:checked={PLAY} aria-label="PLAY flag on/off" /> play
 	<input type="checkbox" bind:checked={DEBUG} aria-label="DEBUG flag on/off" /> debug
 
 	<button onclick={subDivide}>Subdivide</button>
